@@ -24,7 +24,7 @@ labs/                      # independent TypeScript/Node/DBMS experiments
 docs/learning/             # notes if module-local learning docs are impractical
 ```
 
-As of F02, `src/` contains `index.ts`, `app.ts`, and `server.ts` only. The other folders above are not created yet.
+As of I01, `src/` contains `index.ts`, `app.ts`, `server.ts`, and `config/data-stores.ts`. The HTTP process does not open MySQL or Redis. The other folders above are not created yet.
 
 ## Request lifecycle
 Target path for later tasks. F02 only disables `X-Powered-By`, mounts `/api/v1`, and serves `GET /health` on that router.
@@ -35,6 +35,11 @@ Client -> reverse proxy (optional) -> Express middleware (request-id/logger/secu
 `createApp()` in `src/app.ts` builds Express and does not listen. `src/server.ts` listens on `127.0.0.1` and can close that server. Routes are mounted at `/api/v1`. `GET /api/v1/health` returns `200` and `{ "data": { "status": "ok" } }`. That is process liveness only. It does not check MySQL or any other dependency.
 
 Successful JSON uses one envelope: `{ "data": <payload> }`. Error JSON, readiness, request logging, and SIGINT/SIGTERM draining are not implemented. `PORT` may be an integer from 0 through 65535; when it is unset or empty the process uses 3000. A non-integer `PORT` throws. Zod configuration replaces that parse later. The server does not send `X-Powered-By`.
+
+## Local data stores (I01)
+Node.js stays on the host. `docker-compose.yml` runs MySQL `26.7.0` and Redis `8.2`. Published ports bind to `127.0.0.1` only: MySQL host port `3307` (container port `3306`) and Redis `6379`. MySQL data is the named volume `ecom_mysql_data`. A Homebrew MySQL `26.7.0` already listens on port `3306` with its own datadir; Compose does not mount that directory.
+
+`src/config/data-stores.ts` reads `MYSQL_*` and `REDIS_*` and can open a one-shot MySQL `SELECT 1` plus a Redis `AUTH`/`PING`. `npm run infra:check` runs those checks. `createApp()` and `startServer()` do not call them, so liveness stays independent of the containers. Sequelize pooling is F06. Cache and BullMQ are B01–B04. Readiness is F08. The application image is S08. Inside a future app container, the MySQL address is the Compose DNS name `mysql` on port `3306`, because `3307` is only the host mapping.
 
 ## Contracts
 - Version prefix `/api/v1`.

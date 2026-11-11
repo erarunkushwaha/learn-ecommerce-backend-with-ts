@@ -15,12 +15,16 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 - [ ] **F03** — Validate environment with Zod and config conventions
 - [ ] **F04** — Create typed error classes and global async error handling
 - [ ] **F05** — Structured logger, request IDs and HTTP request logging
-- [ ] **F06** — Configure MySQL + Sequelize pooled singleton/module instance
+- [ ] **F06** — Configure MySQL + Sequelize pooled singleton/module instance. Use the I01 env vars and the Compose MySQL on `127.0.0.1:3307`. Keep Homebrew MySQL on port 3306 out of this app.
 - [ ] **F07** — Migrations, seeders, disposable test DB and first migration runner
 - [ ] **F08** — Readiness/liveness checks, startup failure and graceful shutdown
 - [ ] **F09** — Add ESLint/formatting and reliable typecheck/test scripts
 - [ ] **F10** — TypeScript lab: types/interfaces/unions/intersections/narrowing
 - [ ] **F11** — TypeScript lab: generics, utility types, conditional/mapped types and safe Express Request augmentation
+
+## Development infrastructure
+
+- [x] **I01** — Docker Compose for development MySQL 26.7 and Redis 8.2. Node.js stays on the host. Connectivity check only.
 
 ## Users, Authentication & Authorization
 
@@ -89,7 +93,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 
 ## Redis, asynchronous processing & runtime internals
 
-- [ ] **B01** — Redis cache-aside on catalog reads with TTL
+- [ ] **B01** — Redis cache-aside on catalog reads with TTL. Use the I01 Redis service.
 - [ ] **B02** — Invalidate cache on product updates and discuss stampedes
 - [ ] **B03** — BullMQ notification worker and job producer
 - [ ] **B04** — Worker retries, backoff, deduplication and dead-letter strategy
@@ -114,7 +118,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 - [ ] **S05** — Integration tests with disposable MySQL and realistic fixtures
 - [ ] **S06** — Concurrency/property-focused tests for checkout and stock invariants
 - [ ] **S07** — Generate OpenAPI and document endpoint examples/errors
-- [ ] **S08** — Dockerfile and Docker Compose app/MySQL/Redis setup
+- [ ] **S08** — Dockerfile and Compose application image. I01 already runs MySQL and Redis; keep the existing MySQL volume.
 - [ ] **S09** — CI pipeline for lint/typecheck/tests and safe migrations
 - [ ] **S10** — Load test, bottleneck analysis, latency metrics and log correlation
 - [ ] **S11** — Reverse proxy and horizontal scaling lab: stateless replicas and load balancer
@@ -122,7 +126,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 - [ ] **S13** — Production checklist, health/readiness review and final interview walkthrough
 
 ## Handling dependencies
-Auth tables follow DB setup; authorization follows user/auth; checkout follows cart, order and inventory schema; payments follow orders; caching/queues follow stable modules; scaling and comprehensive tests follow the working implementation. If needed, add explicit prerequisite notes to a task before starting it.
+Auth tables follow DB setup; authorization follows user/auth; checkout follows cart, order and inventory schema; payments follow orders; caching/queues follow stable modules and the I01 Redis service; scaling and comprehensive tests follow the working implementation. I01 does not block F03. F06 uses the Compose MySQL from I01. If needed, add explicit prerequisite notes to a task before starting it.
 
 ## Verification rule
 If tests cannot run because MySQL/Redis/Docker is unavailable, write the exact blocker in PROGRESS.md, keep the checkbox open, and stop or perform limited documented validation.

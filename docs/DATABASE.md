@@ -3,6 +3,16 @@
 ## Database
 MySQL 8+ / InnoDB / utf8mb4. Use UTC timestamps, deterministic migrations, explicit foreign keys and sensible on-delete actions. Choose ID strategy and monetary representation before first migration (recommended: BIGINT IDs and DECIMAL(12,2) with currency field). Financial totals calculated server-side; preserve price snapshots on order items.
 
+## Where development data lives
+No application migration has run. Two MySQL 26.7.0 servers can be running, and they do not share files.
+
+| Server | Address | Data |
+|---|---|---|
+| Homebrew `mysqld` | port `3306`, datadir `/opt/homebrew/var/mysql` | Already had user databases `ecom`, `ecommerce_db`, `joins_lab`, `rb_main`, and `rb_tenant_number_1` on 2026-11-11. This repo does not connect to them. |
+| Compose service `mysql` | `127.0.0.1:3307`, volume `ecom-backend_ecom_mysql_data` | Empty database `ecom`, charset `utf8mb4`, collation `utf8mb4_0900_ai_ci`. Future migrations go here. |
+
+Root login to the Homebrew server without a password was rejected, so those tables were not read or copied. Redis `8.2` listens on `127.0.0.1:6379` and has no cache keys yet. See `docs/learning/I01-docker-mysql-redis.md` before copying anything between the two MySQL servers.
+
 ## Planned tables / relationships
 | Table | Primary fields (illustrative) | Relationships / notes |
 |---|---|---|

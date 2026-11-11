@@ -1,0 +1,56 @@
+# Local MySQL and Redis for this repo. Node.js stays on the host.
+# Homebrew MySQL on port 3306 uses /opt/homebrew/var/mysql and is not mounted here.
+# `docker compose down` keeps the named volume. Do not add `-v`.
+
+name: ecom-backend
+
+services:
+  mysql:
+    image: mysql:26.7.0
+    container_name: ecom-backend-mysql
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:?Set MYSQL_PORT in .env}:3306"
+    volumes:
+      - ecom_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin --protocol=TCP ping -h 127.0.0.1 -P 3306 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  redis:
+    image: redis:8.2
+    container_name: ecom-backend-redis
+    # The Redis image declares VOLUME /data, so Compose attaches an anonymous volume.
+    # I01 writes no keys. A later cache task can replace it with a named volume.
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${REDIS_PORT:?Set REDIS_PORT in .env}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  ecom_mysql_data:

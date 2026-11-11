@@ -92,7 +92,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] queues, workers, retry/backoff and dead letter
 - [ ] logging, metrics, health checks — liveness response only (F02); logging and metrics are later
 - [ ] unit/integration/e2e/security/concurrency tests
-- [ ] Docker Compose and CI
+- [ ] Docker Compose and CI — local MySQL and Redis Compose is I01; the app image and CI remain S08 and S09
 - [ ] reverse proxy, horizontal scaling, bottlenecks
 - [ ] load test, DB pool sizing and throughput
 
