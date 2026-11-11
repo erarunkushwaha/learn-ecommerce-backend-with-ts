@@ -3,7 +3,7 @@
 ## Style
 Modular monolith. Scale with disciplined module boundaries before considering services. `src/app.ts` assembles Express; `src/server.ts` starts and stops network/process resources. Controller = HTTP adaptation; service = business rules; repository = persistence. Avoid adding a layer that only forwards calls.
 
-The package is ECMAScript modules (`"type": "module"`). TypeScript compiles with `NodeNext`, so a relative import in a `.ts` file uses the emitted `.js` specifier. See ADR-001. `src/app.ts` and `src/server.ts` are not created until the Express task.
+The package is ECMAScript modules (`"type": "module"`). TypeScript compiles with `NodeNext`, so a relative import in a `.ts` file uses the emitted `.js` specifier. See ADR-001.
 
 ```text
 src/
@@ -24,13 +24,22 @@ labs/                      # independent TypeScript/Node/DBMS experiments
 docs/learning/             # notes if module-local learning docs are impractical
 ```
 
+As of F02, `src/` contains `index.ts`, `app.ts`, and `server.ts` only. The other folders above are not created yet.
+
 ## Request lifecycle
+Target path for later tasks. F02 only disables `X-Powered-By`, mounts `/api/v1`, and serves `GET /health` on that router.
+
 Client -> reverse proxy (optional) -> Express middleware (request-id/logger/security/CORS/rate-limit/parsers, in correct order) -> auth -> ownership/permissions -> Zod validation -> route -> controller -> service -> repository -> Sequelize/parameterized SQL -> MySQL. Global error middleware last. Middleware placement depends on endpoint needs; do not authenticate public routes.
+
+## Implemented HTTP (F02)
+`createApp()` in `src/app.ts` builds Express and does not listen. `src/server.ts` listens on `127.0.0.1` and can close that server. Routes are mounted at `/api/v1`. `GET /api/v1/health` returns `200` and `{ "data": { "status": "ok" } }`. That is process liveness only. It does not check MySQL or any other dependency.
+
+Successful JSON uses one envelope: `{ "data": <payload> }`. Error JSON, readiness, request logging, and SIGINT/SIGTERM draining are not implemented. `PORT` may be an integer from 0 through 65535; when it is unset or empty the process uses 3000. A non-integer `PORT` throws. Zod configuration replaces that parse later. The server does not send `X-Powered-By`.
 
 ## Contracts
 - Version prefix `/api/v1`.
 - Typed request inputs validated at boundaries; never trust input or cast it blindly.
-- Consistent success responses, stable error codes, standard HTTP statuses; define examples when HTTP setup task is implemented.
+- Success JSON is `{ "data": <payload> }` (see F02). Stable error codes are not defined yet. Use standard HTTP statuses.
 - Use async/await; ensure thrown errors propagate to centralized error handling. Never leak stack traces to clients.
 - Domain services handle policy and transactional decisions; repositories do not invoke web/email side effects within open DB transactions.
 - Transactions are explicit for multi-row invariants. Checkout enforces inventory correctness using row locking/conditional updates; retries are bounded and idempotent.

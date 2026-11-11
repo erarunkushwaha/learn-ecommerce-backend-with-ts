@@ -11,7 +11,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 ## Foundation & TypeScript
 
 - [x] **F01** — Bootstrap npm, strict TypeScript, scripts, gitignore and README
-- [ ] **F02** — Create Express app/server, route versioning and health endpoint
+- [x] **F02** — Create Express app/server, route versioning and health endpoint
 - [ ] **F03** — Validate environment with Zod and config conventions
 - [ ] **F04** — Create typed error classes and global async error handling
 - [ ] **F05** — Structured logger, request IDs and HTTP request logging

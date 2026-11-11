@@ -32,8 +32,8 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] authentication vs authorization / ownership checks
 - [ ] validation and HTTP status semantics
 - [ ] CORS, CSRF, cookies and security headers
-- [ ] versioning, filtering, pagination, rate limits
-- [ ] health and readiness; logging and correlation IDs
+- [ ] versioning, filtering, pagination, rate limits — `/api/v1` prefix only (F02); filtering, pagination, and rate limits are later
+- [ ] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` only (F02); readiness is F08; logging and correlation IDs are F05
 
 ## MySQL / DBMS
 
@@ -90,7 +90,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 
 - [ ] Redis cache-aside, TTL/invalidation
 - [ ] queues, workers, retry/backoff and dead letter
-- [ ] logging, metrics, health checks
+- [ ] logging, metrics, health checks — liveness response only (F02); logging and metrics are later
 - [ ] unit/integration/e2e/security/concurrency tests
 - [ ] Docker Compose and CI
 - [ ] reverse proxy, horizontal scaling, bottlenecks

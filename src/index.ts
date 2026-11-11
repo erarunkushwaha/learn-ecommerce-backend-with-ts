@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-/** Toolchain entry for F01. HTTP composition starts in a later task. */
+/** Toolchain module from F01. The HTTP process entry is src/server.ts. */
 export const serviceName = "ecom-backend";
 
 export function bootstrapMessage(): string {

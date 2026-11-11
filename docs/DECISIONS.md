@@ -29,3 +29,12 @@ This log distinguishes **proposed defaults** from **approved implementation choi
 - **Consequences:** Native `import`/`export` and top-level await stay available. Tooling must be ESM-aware. `require` is not the app's module loader. The module cache is still one evaluation per URL per process; a database client placed in a module scope is reused until the process exits.
 - **Related task:** F01
 - **Date:** 2026-11-11
+
+### ADR-002: Split the Express app from the listening process
+- **Status:** Accepted
+- **Context:** F02 needs a versioned HTTP API and a health route before configuration, MySQL, auth, logging, or a global error handler exist. Express 5.3 is the current major and ships without its own `.d.ts` files. `@types/express` 5 matches that major.
+- **Decision:** `createApp()` returns an Express application and does not bind a port. `src/server.ts` is the process entry: it listens on `127.0.0.1`, logs the URL, and exports a hard `stopServer` for tests. Routes mount on an Express router at `/api/v1`. Successful JSON is `{ "data": <payload> }`. `GET /api/v1/health` returns `200` with `{ "data": { "status": "ok" } }` and does not check dependencies. `X-Powered-By` is disabled. Health stays a route handler because a controller and service would only forward a constant. `PORT` accepts an integer `0`–`65535` and defaults to `3000` when unset or empty; invalid values fail startup. Tests use the Node.js built-in runner against compiled `dist/`.
+- **Alternatives:** Express 4.22 is the older maintenance line and matches most legacy tutorials. One file that both builds the app and calls `listen` at import time would open a port whenever a test loaded it. A bare `{ "status": "ok" }` body would not give later routes a shared success shape.
+- **Consequences:** Tests can import the app without binding a socket. Clients must use the `/api/v1` prefix. This health check can stay green while a future database is down. The temporary `PORT` parse moves into Zod config later. Graceful signal handling, readiness, CORS, security headers, and JSON error bodies are still absent. `stopServer` drops open sockets instead of draining them.
+- **Related task:** F02
+- **Date:** 2026-11-11
