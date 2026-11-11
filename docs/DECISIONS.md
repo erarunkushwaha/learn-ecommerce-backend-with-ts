@@ -20,4 +20,12 @@ This log distinguishes **proposed defaults** from **approved implementation choi
 - **Date:** YYYY-MM-DD
 
 ## Accepted decisions
-_No decisions recorded yet._
+
+### ADR-001: Use ECMAScript modules
+- **Status:** Accepted
+- **Context:** The stack requires a supported Node.js LTS and an early ESM or CommonJS choice. Node 22.12.0 is the verified runtime. Later tasks add Express, but the module format has to be fixed before the first compiled file.
+- **Decision:** `"type": "module"` in `package.json`. TypeScript uses `module` and `moduleResolution` set to `NodeNext`. Relative imports in TypeScript must use the runtime `.js` extension.
+- **Alternatives:** CommonJS (`"type"` omitted, `module: CommonJS`) matches older Express examples and needs no extensions. It fights Node's current default and makes a later migration touch every import.
+- **Consequences:** Native `import`/`export` and top-level await stay available. Tooling must be ESM-aware. `require` is not the app's module loader. The module cache is still one evaluation per URL per process; a database client placed in a module scope is reused until the process exits.
+- **Related task:** F01
+- **Date:** 2026-11-11

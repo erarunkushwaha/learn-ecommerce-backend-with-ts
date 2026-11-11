@@ -3,6 +3,8 @@
 ## Style
 Modular monolith. Scale with disciplined module boundaries before considering services. `src/app.ts` assembles Express; `src/server.ts` starts and stops network/process resources. Controller = HTTP adaptation; service = business rules; repository = persistence. Avoid adding a layer that only forwards calls.
 
+The package is ECMAScript modules (`"type": "module"`). TypeScript compiles with `NodeNext`, so a relative import in a `.ts` file uses the emitted `.js` specifier. See ADR-001. `src/app.ts` and `src/server.ts` are not created until the Express task.
+
 ```text
 src/
   app.ts

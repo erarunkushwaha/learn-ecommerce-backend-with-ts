@@ -4,7 +4,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 
 ## TypeScript
 
-- [ ] strictNullChecks / noImplicitAny
+- [x] strictNullChecks / noImplicitAny — F01, `tsconfig.json` (`"strict": true`), `docs/learning/F01-bootstrap.md`
 - [ ] interface vs type; union/intersection; discriminated union
 - [ ] generics and reusable response/repository types
 - [ ] utility types Partial/Pick/Omit/Record/Readonly
@@ -20,7 +20,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] libuv thread pool vs worker threads vs child processes
 - [ ] EventEmitter and events
 - [ ] Streams, Buffers, pipeline and backpressure
-- [ ] CommonJS vs ESM; module cache
+- [x] CommonJS vs ESM; module cache — F01, ADR-001, `docs/learning/F01-bootstrap.md`
 - [ ] CPU-bound vs IO-bound workloads, profiling and memory leaks
 - [ ] process signals, graceful shutdown and clustering/load balancer discussion
 
