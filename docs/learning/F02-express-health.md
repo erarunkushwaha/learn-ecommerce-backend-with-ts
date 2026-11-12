@@ -25,7 +25,7 @@ The success shape is `{ "data": payload }`. Later JSON responses should reuse `S
 
 `createServer(createApp())` works because an Express app is a request listener: `(req, res) => void`. The relative import is `./app.js` even though the source file is `app.ts` (ADR-001).
 
-`PORT` is a temporary integer parse, not the Zod config module. Unset or empty means `3000`. `0` means "ask the OS for a free port," which is how the tests avoid colliding with a busy port. Anything that is not an integer from 0 through 65535 fails startup.
+`PORT` is validated by `src/config/env.ts` before listen. Unset or empty means `3000`. `0` means "ask the OS for a free port," which is how the tests avoid colliding with a busy port. Anything that is not an integer from 0 through 65535 fails startup. The same module requires the MySQL and Redis settings. See `docs/learning/F03-env-config.md`.
 
 `stopServer` stops accepting connections and then closes sockets that are already open. That keeps tests from hanging on an idle keep-alive connection. It does not wait for in-flight work. Signal handlers are not installed, so `SIGTERM` still uses Node's default: exit immediately.
 

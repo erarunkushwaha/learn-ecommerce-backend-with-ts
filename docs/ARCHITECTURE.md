@@ -24,22 +24,22 @@ labs/                      # independent TypeScript/Node/DBMS experiments
 docs/learning/             # notes if module-local learning docs are impractical
 ```
 
-As of I01, `src/` contains `index.ts`, `app.ts`, `server.ts`, and `config/data-stores.ts`. The HTTP process does not open MySQL or Redis. The other folders above are not created yet.
+As of F03, `src/` contains `index.ts`, `app.ts`, `server.ts`, `config/env.ts`, and `config/data-stores.ts`. The HTTP process validates its environment and does not open MySQL or Redis. The other folders above are not created yet.
 
 ## Request lifecycle
 Target path for later tasks. F02 only disables `X-Powered-By`, mounts `/api/v1`, and serves `GET /health` on that router.
 
 Client -> reverse proxy (optional) -> Express middleware (request-id/logger/security/CORS/rate-limit/parsers, in correct order) -> auth -> ownership/permissions -> Zod validation -> route -> controller -> service -> repository -> Sequelize/parameterized SQL -> MySQL. Global error middleware last. Middleware placement depends on endpoint needs; do not authenticate public routes.
 
-## Implemented HTTP (F02)
+## Implemented HTTP (F02, F03)
 `createApp()` in `src/app.ts` builds Express and does not listen. `src/server.ts` listens on `127.0.0.1` and can close that server. Routes are mounted at `/api/v1`. `GET /api/v1/health` returns `200` and `{ "data": { "status": "ok" } }`. That is process liveness only. It does not check MySQL or any other dependency.
 
-Successful JSON uses one envelope: `{ "data": <payload> }`. Error JSON, readiness, request logging, and SIGINT/SIGTERM draining are not implemented. `PORT` may be an integer from 0 through 65535; when it is unset or empty the process uses 3000. A non-integer `PORT` throws. Zod configuration replaces that parse later. The server does not send `X-Powered-By`.
+Successful JSON uses one envelope: `{ "data": <payload> }`. Error JSON, readiness, request logging, and SIGINT/SIGTERM draining are not implemented. Before listen, `startServer()` with no explicit port loads `src/config/env.ts`. `PORT` may be an integer from 0 through 65535; when it is unset or empty the process uses 3000. Invalid config prints the variable names and rules, then exits. The listen address remains the constant `127.0.0.1`. The server does not send `X-Powered-By`.
 
 ## Local data stores (I01)
 Node.js stays on the host. `docker-compose.yml` runs MySQL `26.7.0` and Redis `8.2`. Published ports bind to `127.0.0.1` only: MySQL host port `3307` (container port `3306`) and Redis `6379`. MySQL data is the named volume `ecom_mysql_data`. A Homebrew MySQL `26.7.0` already listens on port `3306` with its own datadir; Compose does not mount that directory.
 
-`src/config/data-stores.ts` reads `MYSQL_*` and `REDIS_*` and can open a one-shot MySQL `SELECT 1` plus a Redis `AUTH`/`PING`. `npm run infra:check` runs those checks. `createApp()` and `startServer()` do not call them, so liveness stays independent of the containers. Sequelize pooling is F06. Cache and BullMQ are B01–B04. Readiness is F08. The application image is S08. Inside a future app container, the MySQL address is the Compose DNS name `mysql` on port `3306`, because `3307` is only the host mapping.
+`src/config/env.ts` validates `PORT`, `MYSQL_*`, and `REDIS_*` with one Zod schema. `MYSQL_ROOT_PASSWORD` stays a Compose variable. `src/config/data-stores.ts` can open a one-shot MySQL `SELECT 1` plus a Redis `AUTH`/`PING` from those settings. `npm run infra:check` runs those checks. `createApp()` does not read the environment. `startServer()` with no explicit port validates the variables and does not connect, so liveness stays independent of the containers. `startServer(port)` is the in-process test seam and checks that number only. Sequelize pooling is F06. Cache and BullMQ are B01–B04. Readiness is F08. The application image is S08. Inside a future app container, the MySQL address is the Compose DNS name `mysql` on port `3306`, because `3307` is only the host mapping. The schema accepts that address.
 
 ## Contracts
 - Version prefix `/api/v1`.

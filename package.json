@@ -2,7 +2,7 @@
   "name": "ecom-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, and liveness health are in place. Local MySQL and Redis run in Docker Compose.",
+  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness health, and Zod environment config are in place. Local MySQL and Redis run in Docker Compose.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -10,8 +10,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsc -p tsconfig.json && node dist/server.js",
-    "start": "node dist/server.js",
+    "dev": "tsc -p tsconfig.json && node --env-file=.env dist/server.js",
+    "start": "node --env-file=.env dist/server.js",
     "test": "tsc -p tsconfig.json && node --test tests/*.test.mjs",
     "infra:check": "tsc -p tsconfig.json && node --env-file=.env scripts/check-data-stores.mjs"
   },
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "express": "^5.3.0",
-    "mysql2": "^3.24.6"
+    "mysql2": "^3.24.6",
+    "zod": "^4.6.7"
   }
 }

@@ -9,7 +9,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] generics and reusable response/repository types
 - [ ] utility types Partial/Pick/Omit/Record/Readonly
 - [ ] mapped/conditional types and type guards
-- [ ] Express Request extension, runtime validation vs TS types
+- [ ] Express Request extension, runtime validation vs TS types — runtime validation versus `AppConfig` is F03 (`src/config/env.ts`, `docs/learning/F03-env-config.md`); Express Request extension is later
 
 ## Node.js
 
@@ -30,7 +30,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] controllers/services/repositories separation
 - [ ] sync/async errors and global handler
 - [ ] authentication vs authorization / ownership checks
-- [ ] validation and HTTP status semantics
+- [ ] validation and HTTP status semantics — environment variables are validated before listen (F03, `src/config/env.ts`, `docs/learning/F03-env-config.md`); request validation and status mapping are later
 - [ ] CORS, CSRF, cookies and security headers
 - [ ] versioning, filtering, pagination, rate limits — `/api/v1` prefix only (F02); filtering, pagination, and rate limits are later
 - [ ] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` only (F02); readiness is F08; logging and correlation IDs are F05

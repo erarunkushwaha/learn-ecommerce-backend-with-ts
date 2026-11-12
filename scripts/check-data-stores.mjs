@@ -1,9 +1,5 @@
-import {
-  checkMysqlConnection,
-  checkRedisConnection,
-  readMysqlSettings,
-  readRedisSettings,
-} from "../dist/config/data-stores.js";
+import { readMysqlSettings, readRedisSettings } from "../dist/config/env.js";
+import { checkMysqlConnection, checkRedisConnection } from "../dist/config/data-stores.js";
 
 /**
  * One-shot connectivity check for the Compose MySQL and Redis services.

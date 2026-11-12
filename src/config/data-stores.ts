@@ -1,51 +1,13 @@
 import net from "node:net";
 import mysql from "mysql2/promise";
+import type { MysqlSettings, RedisSettings } from "./env.js";
 
 /**
- * Host-side addresses for the Compose MySQL and Redis services.
- * The HTTP server does not open these connections.
+ * One-shot pings for the Compose MySQL and Redis services.
+ * Settings are parsed in `env.ts`. This file does not choose defaults.
+ * The HTTP server does not import this module.
  * F06 adds the Sequelize pool. Cache and job clients stay in later tasks.
  */
-
-export type MysqlSettings = {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-};
-
-export type RedisSettings = {
-  host: string;
-  port: number;
-  password: string;
-};
-
-type Env = Record<string, string | undefined>;
-
-const MYSQL_HOST_DEFAULT = "127.0.0.1";
-const MYSQL_PORT_DEFAULT = 3307;
-const REDIS_HOST_DEFAULT = "127.0.0.1";
-const REDIS_PORT_DEFAULT = 6379;
-const PORT_ERROR = "must be an integer from 1 through 65535";
-
-export function readMysqlSettings(env: Env): MysqlSettings {
-  return {
-    host: readDefault(env, "MYSQL_HOST", MYSQL_HOST_DEFAULT),
-    port: readPort(env, "MYSQL_PORT", MYSQL_PORT_DEFAULT),
-    database: readRequired(env, "MYSQL_DATABASE"),
-    user: readRequired(env, "MYSQL_USER"),
-    password: readRequired(env, "MYSQL_PASSWORD"),
-  };
-}
-
-export function readRedisSettings(env: Env): RedisSettings {
-  return {
-    host: readDefault(env, "REDIS_HOST", REDIS_HOST_DEFAULT),
-    port: readPort(env, "REDIS_PORT", REDIS_PORT_DEFAULT),
-    password: readRequired(env, "REDIS_PASSWORD"),
-  };
-}
 
 /** Open one MySQL connection, run `SELECT 1`, and close it. */
 export async function checkMysqlConnection(settings: MysqlSettings): Promise<void> {
@@ -125,37 +87,6 @@ export function checkRedisConnection(
       socket.write(encodeCommand("PING"));
     });
   });
-}
-
-function readDefault(env: Env, name: string, fallback: string): string {
-  const value = env[name];
-  if (value === undefined || value === "") {
-    return fallback;
-  }
-  return value;
-}
-
-function readRequired(env: Env, name: string): string {
-  const value = env[name];
-  if (value === undefined || value === "") {
-    throw new Error(`${name} is required`);
-  }
-  return value;
-}
-
-function readPort(env: Env, name: string, fallback: number): number {
-  const value = env[name];
-  if (value === undefined || value === "") {
-    return fallback;
-  }
-  if (!/^\d{1,5}$/.test(value)) {
-    throw new Error(`${name} ${PORT_ERROR}`);
-  }
-  const port = Number(value);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`${name} ${PORT_ERROR}`);
-  }
-  return port;
 }
 
 function encodeCommand(...parts: string[]): string {

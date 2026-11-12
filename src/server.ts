@@ -2,8 +2,8 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { pathToFileURL } from "node:url";
 import { createApp } from "./app.js";
+import { loadConfig } from "./config/env.js";
 
-export const DEFAULT_PORT = 3000;
 export const LISTEN_HOST = "127.0.0.1";
 
 const PORT_ERROR = "PORT must be an integer from 0 through 65535";
@@ -11,14 +11,14 @@ const PORT_ERROR = "PORT must be an integer from 0 through 65535";
 /**
  * Listen on the loopback interface.
  * Pass `0` to let the operating system choose a free port.
- * An omitted port uses `PORT` when it is a valid integer, and otherwise 3000.
- * Zod-validated configuration replaces this in a later task.
+ * An omitted port loads the Zod config and uses `config.port`.
+ * An explicit port is the test seam: it checks that number only.
  */
 export function startServer(port?: number): Promise<Server> {
   return new Promise((resolve, reject) => {
     let listenPort: number;
     try {
-      listenPort = port === undefined ? readListenPort() : port;
+      listenPort = port === undefined ? loadConfig(process.env).port : port;
       assertListenPort(listenPort);
     } catch (error) {
       reject(error instanceof Error ? error : new Error("Server failed to start"));
@@ -68,17 +68,6 @@ export function listeningUrl(server: Server): string {
     throw new Error("HTTP server is not listening on a TCP port");
   }
   return `http://${address.address}:${address.port}`;
-}
-
-function readListenPort(): number {
-  const raw = process.env.PORT;
-  if (raw === undefined || raw === "") {
-    return DEFAULT_PORT;
-  }
-  if (!/^\d{1,5}$/.test(raw)) {
-    throw new Error(PORT_ERROR);
-  }
-  return Number(raw);
 }
 
 function assertListenPort(port: number): void {

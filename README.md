@@ -1,6 +1,6 @@
 # ecom-backend
 
-Interview-lab e-commerce API. The HTTP process is an Express app with a `/api/v1` prefix and a liveness health route. Local MySQL and Redis run in Docker Compose. Zod config, error JSON, logging, and the Sequelize pool are later roadmap tasks.
+Interview-lab e-commerce API. The HTTP process is an Express app with a `/api/v1` prefix, a liveness health route, and Zod environment validation. Local MySQL and Redis run in Docker Compose. Error JSON, logging, and the Sequelize pool are later roadmap tasks.
 
 ## Requirements
 
@@ -12,12 +12,12 @@ Interview-lab e-commerce API. The HTTP process is an Express app with a `/api/v1
 
 - `npm run typecheck` — strict TypeScript check, no emit
 - `npm run build` — compile `src/` to `dist/`
-- `npm run dev` — compile, then run the HTTP server
-- `npm start` — run the already compiled HTTP server
+- `npm run dev` — compile, then run the HTTP server with `.env`
+- `npm start` — run the already compiled HTTP server with `.env`
 - `npm test` — compile, then run the Node.js built-in tests
-- `npm run infra:check` — compile, then ping the Compose MySQL and Redis services
+- `npm run infra:check` — compile, load `.env`, then ping the Compose MySQL and Redis services
 
-`npm start` listens on `127.0.0.1`. `PORT` defaults to `3000` when unset or empty. Set `PORT=0` to let the OS pick a free port. A non-integer `PORT` exits before listen.
+`npm start` listens on `127.0.0.1`. It validates `PORT`, the MySQL settings, and the Redis settings before listen. `PORT` defaults to `3000` when unset or empty. Set `PORT=0` to let the OS pick a free port. A non-integer `PORT`, or a missing database or Redis password, exits before listen. Startup does not open those services. Copy `.env.example` to `.env` first; Node reports a missing env file before the app does.
 
 ## Docker Compose
 
@@ -45,11 +45,14 @@ npm run dev
 
 ## Module format
 
-The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNext`, so relative imports use a `.js` specifier. See ADR-001 and ADR-002 in `docs/DECISIONS.md`.
+The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNext`, so relative imports use a `.js` specifier. See ADR-001, ADR-002, and ADR-004 in `docs/DECISIONS.md`.
 
 ## Layout
 
 - `src/app.ts` — Express app, `/api/v1`, health route; does not listen
-- `src/server.ts` — process entry that listens and can close the server
+- `src/server.ts` — process entry that validates config, listens, and can close the server
+- `src/config/env.ts` — Zod schema for `PORT`, MySQL, and Redis
+- `src/config/data-stores.ts` — one-shot MySQL and Redis pings
 - `src/index.ts` — F01 toolchain module; not the HTTP entry
 - `tests/health.test.mjs` — health, version prefix, listen, and invalid `PORT`
+- `tests/config.test.mjs` — environment defaults, rejects, and secret-safe errors

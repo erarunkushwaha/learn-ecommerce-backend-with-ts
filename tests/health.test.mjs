@@ -7,6 +7,21 @@ import { fileURLToPath } from "node:url";
 import { createApp } from "../dist/app.js";
 import { listeningUrl, startServer, stopServer } from "../dist/server.js";
 
+/**
+ * Closed ports on purpose. Startup must accept this shape and must not connect.
+ * @type {Record<string, string>}
+ */
+const LOCAL_DATA_STORE_ENV = {
+  MYSQL_HOST: "127.0.0.1",
+  MYSQL_PORT: "1",
+  MYSQL_DATABASE: "ecom",
+  MYSQL_USER: "ecom",
+  MYSQL_PASSWORD: "local-only",
+  REDIS_HOST: "127.0.0.1",
+  REDIS_PORT: "1",
+  REDIS_PASSWORD: "local-only",
+};
+
 test("GET /api/v1/health returns the liveness envelope", async () => {
   await withApp(async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/v1/health`);
@@ -68,6 +83,24 @@ test("server entry rejects a non-integer PORT", { timeout: 10_000 }, async () =>
   assert.equal(code, 1);
   assert.equal(child.stdoutText(), "");
   assert.match(child.stderrText(), /PORT must be an integer from 0 through 65535/);
+  assert.equal(child.stderrText().includes("local-only"), false);
+});
+
+test("server entry rejects a missing Redis password before listen", { timeout: 10_000 }, async () => {
+  const child = spawnServer({}, ["REDIS_PASSWORD"]);
+  const [code] = await once(child.process, "exit");
+  await child.stdioClosed;
+
+  assert.equal(code, 1);
+  assert.equal(child.stdoutText(), "");
+  assert.match(child.stderrText(), /REDIS_PASSWORD is required/);
+});
+
+test("startServer rejects an explicit port outside 0 through 65535", async () => {
+  await assert.rejects(
+    () => startServer(65536),
+    /PORT must be an integer from 0 through 65535/,
+  );
 });
 
 /**
@@ -99,12 +132,21 @@ async function withApp(fn) {
 
 /**
  * @param {Record<string, string>} env
+ * @param {string[]} [omitKeys]
  */
-function spawnServer(env) {
+function spawnServer(env, omitKeys = []) {
   const root = fileURLToPath(new URL("..", import.meta.url));
+  const merged = {
+    ...process.env,
+    ...LOCAL_DATA_STORE_ENV,
+    ...env,
+  };
+  for (const key of omitKeys) {
+    delete merged[key];
+  }
   const child = spawn(process.execPath, ["dist/server.js"], {
     cwd: root,
-    env: { ...process.env, ...env },
+    env: merged,
     stdio: ["ignore", "pipe", "pipe"],
   });
 
