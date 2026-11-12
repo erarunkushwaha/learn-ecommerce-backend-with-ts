@@ -8,7 +8,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] interface vs type; union/intersection; discriminated union
 - [ ] generics and reusable response/repository types
 - [ ] utility types Partial/Pick/Omit/Record/Readonly
-- [ ] mapped/conditional types and type guards
+- [ ] mapped/conditional types and type guards — `isAppError` / `isClientAppError` are type guards (F04, `src/common/errors/app-error.ts`, `docs/learning/F04-error-handling.md`); mapped and conditional types are F11
 - [ ] Express Request extension, runtime validation vs TS types — runtime validation versus `AppConfig` is F03 (`src/config/env.ts`, `docs/learning/F03-env-config.md`); Express Request extension is later
 
 ## Node.js
@@ -16,7 +16,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] V8, call stack and JavaScript runtime
 - [ ] libuv event loop phases and nonblocking I/O
 - [ ] microtasks, process.nextTick, setImmediate, timers
-- [ ] Promises, async/await, error propagation
+- [ ] Promises, async/await, error propagation — Express 5 forwards a rejected route promise to the error middleware (F04, `docs/learning/F04-error-handling.md`); event-loop ordering is N02
 - [ ] libuv thread pool vs worker threads vs child processes
 - [ ] EventEmitter and events
 - [ ] Streams, Buffers, pipeline and backpressure
@@ -26,11 +26,11 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 
 ## Express / HTTP
 
-- [ ] request-response lifecycle and middleware order
+- [ ] request-response lifecycle and middleware order — F04 mounts routes, then a JSON 404, then one error middleware (`src/app.ts`, `docs/learning/F04-error-handling.md`); auth, validation, and the rest of the lifecycle are later
 - [ ] controllers/services/repositories separation
-- [ ] sync/async errors and global handler
+- [x] sync/async errors and global handler — F04, `src/common/errors/app-error.ts`, `src/common/middleware/error-handler.ts`, `docs/learning/F04-error-handling.md`
 - [ ] authentication vs authorization / ownership checks
-- [ ] validation and HTTP status semantics — environment variables are validated before listen (F03, `src/config/env.ts`, `docs/learning/F03-env-config.md`); request validation and status mapping are later
+- [ ] validation and HTTP status semantics — environment variables are validated before listen (F03, `src/config/env.ts`, `docs/learning/F03-env-config.md`). F04 maps `AppError` to its HTTP status and uses 404 for an unmatched route and 500 for an unexpected throw (`docs/learning/F04-error-handling.md`). Request-body validation and a fuller status catalog are later
 - [ ] CORS, CSRF, cookies and security headers
 - [ ] versioning, filtering, pagination, rate limits — `/api/v1` prefix only (F02); filtering, pagination, and rate limits are later
 - [ ] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` only (F02); readiness is F08; logging and correlation IDs are F05

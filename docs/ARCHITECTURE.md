@@ -24,17 +24,19 @@ labs/                      # independent TypeScript/Node/DBMS experiments
 docs/learning/             # notes if module-local learning docs are impractical
 ```
 
-As of F03, `src/` contains `index.ts`, `app.ts`, `server.ts`, `config/env.ts`, and `config/data-stores.ts`. The HTTP process validates its environment and does not open MySQL or Redis. The other folders above are not created yet.
+As of F04, `src/` contains `index.ts`, `app.ts`, `server.ts`, `config/env.ts`, `config/data-stores.ts`, `common/errors/app-error.ts`, and `common/middleware/error-handler.ts`. The HTTP process validates its environment, answers known and unknown routes with JSON, and does not open MySQL or Redis. The other folders above are not created yet.
 
 ## Request lifecycle
-Target path for later tasks. F02 only disables `X-Powered-By`, mounts `/api/v1`, and serves `GET /health` on that router.
+Target path for later tasks. F02 disables `X-Powered-By` and mounts `/api/v1`. F04 adds the JSON 404 and the final error middleware. Request IDs, auth, validation, and the other middleware in this list are not installed yet.
 
 Client -> reverse proxy (optional) -> Express middleware (request-id/logger/security/CORS/rate-limit/parsers, in correct order) -> auth -> ownership/permissions -> Zod validation -> route -> controller -> service -> repository -> Sequelize/parameterized SQL -> MySQL. Global error middleware last. Middleware placement depends on endpoint needs; do not authenticate public routes.
 
-## Implemented HTTP (F02, F03)
+## Implemented HTTP (F02, F03, F04)
 `createApp()` in `src/app.ts` builds Express and does not listen. `src/server.ts` listens on `127.0.0.1` and can close that server. Routes are mounted at `/api/v1`. `GET /api/v1/health` returns `200` and `{ "data": { "status": "ok" } }`. That is process liveness only. It does not check MySQL or any other dependency.
 
-Successful JSON uses one envelope: `{ "data": <payload> }`. Error JSON, readiness, request logging, and SIGINT/SIGTERM draining are not implemented. Before listen, `startServer()` with no explicit port loads `src/config/env.ts`. `PORT` may be an integer from 0 through 65535; when it is unset or empty the process uses 3000. Invalid config prints the variable names and rules, then exits. The listen address remains the constant `127.0.0.1`. The server does not send `X-Powered-By`.
+Successful JSON uses one envelope: `{ "data": <payload> }`. Error JSON uses a second envelope: `{ "error": { "status", "code", "message" } }`. `notFoundHandler` runs after the routes and forwards `NotFoundError`. `errorHandler` is last. An `AppError` that still has a 400–599 status, a lowercase `code` token, and a non-empty message is serialized as that object. Every other thrown or rejected value becomes `500`, code `internal_error`, message `Internal server error`, with no stack and no original message. The handler does not log. `POST /api/v1/health` is that same 404, because no 405 response is defined yet. Express 5 forwards thrown handler exceptions and rejected native promises, so routes are not wrapped. Readiness, request logging, and SIGINT/SIGTERM draining are not implemented.
+
+Before listen, `startServer()` with no explicit port loads `src/config/env.ts`. `PORT` may be an integer from 0 through 65535; when it is unset or empty the process uses 3000. Invalid config prints the variable names and rules, then exits. That startup failure is a plain `Error` on stderr, not the HTTP error envelope. The listen address remains the constant `127.0.0.1`. The server does not send `X-Powered-By`.
 
 ## Local data stores (I01)
 Node.js stays on the host. `docker-compose.yml` runs MySQL `26.7.0` and Redis `8.2`. Published ports bind to `127.0.0.1` only: MySQL host port `3307` (container port `3306`) and Redis `6379`. MySQL data is the named volume `ecom_mysql_data`. A Homebrew MySQL `26.7.0` already listens on port `3306` with its own datadir; Compose does not mount that directory.
@@ -44,8 +46,8 @@ Node.js stays on the host. `docker-compose.yml` runs MySQL `26.7.0` and Redis `8
 ## Contracts
 - Version prefix `/api/v1`.
 - Typed request inputs validated at boundaries; never trust input or cast it blindly.
-- Success JSON is `{ "data": <payload> }` (see F02). Stable error codes are not defined yet. Use standard HTTP statuses.
-- Use async/await; ensure thrown errors propagate to centralized error handling. Never leak stack traces to clients.
+- Success JSON is `{ "data": <payload> }` (see F02). Error JSON is `{ "error": { "status", "code", "message" } }` (see F04, ADR-005). The codes defined now are `not_found` and `internal_error`. A later failure adds a code by subclassing `AppError`.
+- Use async/await. Express 5 forwards handler throws and rejections to `src/common/middleware/error-handler.ts`. Never leak stack traces to clients.
 - Domain services handle policy and transactional decisions; repositories do not invoke web/email side effects within open DB transactions.
 - Transactions are explicit for multi-row invariants. Checkout enforces inventory correctness using row locking/conditional updates; retries are bounded and idempotent.
 - Use a single configured Sequelize instance per Node process with connection pooling (module caching may already suffice); don't instantiate a DB client per request. Avoid unnecessary Singleton classes.

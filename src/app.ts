@@ -1,4 +1,5 @@
 import express from "express";
+import { errorHandler, notFoundHandler } from "./common/middleware/error-handler.js";
 
 /** Path prefix for the first public API version. */
 export const API_V1_PREFIX = "/api/v1";
@@ -33,5 +34,8 @@ export function createApp(): express.Express {
   });
 
   app.use(API_V1_PREFIX, v1);
+  // After every route. An unknown method or path is a JSON 404, then the error handler.
+  app.use(notFoundHandler);
+  app.use(errorHandler);
   return app;
 }

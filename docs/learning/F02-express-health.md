@@ -9,7 +9,7 @@
 { "data": { "status": "ok" } }
 ```
 
-`GET /health` and `GET /api/v2/health` do not hit that handler. Express still answers those with its default HTML `404`. A stable JSON error body arrives with the global error handler later.
+`GET /health` and `GET /api/v2/health` do not hit that handler. They fall through to the JSON 404 in `docs/learning/F04-error-handling.md`.
 
 Importing `src/app.ts` or `src/server.ts` does not open a port. The listen call sits behind the same direct-run check used by the F01 entry: it runs only when Node's `process.argv[1]` is this file.
 
@@ -30,7 +30,7 @@ The success shape is `{ "data": payload }`. Later JSON responses should reuse `S
 `stopServer` stops accepting connections and then closes sockets that are already open. That keeps tests from hanging on an idle keep-alive connection. It does not wait for in-flight work. Signal handlers are not installed, so `SIGTERM` still uses Node's default: exit immediately.
 
 ## Security
-The development server binds `127.0.0.1`, so another machine on the network cannot open it. `X-Powered-By: Express` is disabled so responses do not advertise the framework. The health handler ignores the query string and body, and it does not read secrets. CORS, Helmet, and rate limits are later tasks. The HTML `404` for unknown paths is a known gap until error responses are standardized.
+The development server binds `127.0.0.1`, so another machine on the network cannot open it. `X-Powered-By: Express` is disabled so responses do not advertise the framework. The health handler ignores the query string and body, and it does not read secrets. CORS, Helmet, and rate limits are later tasks. Unknown paths now use the JSON error envelope from F04.
 
 ## Interview questions
 1. Why keep `listen` out of `createApp()`? An import should not bind a socket. Tests and future workers can reuse the app, and a process entry is the only place that owns the port.
