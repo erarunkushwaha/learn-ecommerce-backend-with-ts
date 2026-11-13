@@ -2,7 +2,7 @@
   "name": "ecom-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness health, Zod environment config, and JSON error handling are in place. Local MySQL and Redis run in Docker Compose.",
+  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness health, Zod environment config, JSON error handling, and structured request logs are in place. Local MySQL and Redis run in Docker Compose.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"

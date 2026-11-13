@@ -14,7 +14,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 - [x] **F02** — Create Express app/server, route versioning and health endpoint
 - [x] **F03** — Validate environment with Zod and config conventions
 - [x] **F04** — Create typed error classes and global async error handling
-- [ ] **F05** — Structured logger, request IDs and HTTP request logging
+- [x] **F05** — Structured logger, request IDs and HTTP request logging
 - [ ] **F06** — Configure MySQL + Sequelize pooled singleton/module instance. Use the I01 env vars and the Compose MySQL on `127.0.0.1:3307`. Keep Homebrew MySQL on port 3306 out of this app.
 - [ ] **F07** — Migrations, seeders, disposable test DB and first migration runner
 - [ ] **F08** — Readiness/liveness checks, startup failure and graceful shutdown

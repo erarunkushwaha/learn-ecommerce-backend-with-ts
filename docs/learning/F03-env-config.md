@@ -3,7 +3,7 @@
 ## Startup flow
 `npm start` and `npm run dev` load `.env` with Node's `--env-file`, then run `dist/server.js`. The direct-run path calls `startServer()` with no argument. That call parses `process.env` through `loadConfig` before `listen`.
 
-`loadConfig` checks `PORT`, the MySQL settings, and the Redis settings with one Zod object. The returned value is an `AppConfig`: a listen port plus `mysql` and `redis` objects. Field names such as `MYSQL_PORT` stay at the boundary. Later code reads `config.mysql.port`.
+`loadConfig` checks `PORT`, `LOG_LEVEL`, the MySQL settings, and the Redis settings with one Zod object. The returned value is an `AppConfig`: a listen port, a log level, plus `mysql` and `redis` objects. Field names such as `MYSQL_PORT` stay at the boundary. Later code reads `config.mysql.port`. `LOG_LEVEL` is documented with the logger in `docs/learning/F05-logging.md`.
 
 A valid result is a shape check. The process then binds `127.0.0.1` and serves `GET /api/v1/health`. It still does not open MySQL or Redis. `npm run infra:check` is the connectivity check. It reuses `readMysqlSettings` and `readRedisSettings`, which are slices of the same field schemas, and then pings.
 
@@ -12,7 +12,7 @@ A valid result is a shape check. The process then binds `127.0.0.1` and serves `
 ## Why the rules look like this
 `process.env` values are strings when they are present. TypeScript can describe `AppConfig`, and that description does not inspect the machine. Zod runs at startup and is what rejects `PORT=nope`.
 
-Empty and missing values share a meaning. `PORT`, `MYSQL_HOST`, `MYSQL_PORT`, `REDIS_HOST`, and `REDIS_PORT` fall back to `3000`, `127.0.0.1`, `3307`, `127.0.0.1`, and `6379`. `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `REDIS_PASSWORD` have no safe default, so an empty string is a startup error.
+Empty and missing values share a meaning. `PORT`, `LOG_LEVEL`, `MYSQL_HOST`, `MYSQL_PORT`, `REDIS_HOST`, and `REDIS_PORT` fall back to `3000`, `info`, `127.0.0.1`, `3307`, `127.0.0.1`, and `6379`. `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `REDIS_PASSWORD` have no safe default, so an empty string is a startup error.
 
 `PORT` may be `0`, which asks the operating system for a free port. `MYSQL_PORT` and `REDIS_PORT` start at `1` because `0` is not a service port. The decimal check is `^\d{1,5}$` plus the numeric range, so `3306abc`, `65536`, and `1.5` fail. Leading zeros are ordinary decimals: `0007` is `7`.
 

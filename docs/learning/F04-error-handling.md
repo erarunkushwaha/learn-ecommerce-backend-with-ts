@@ -40,7 +40,7 @@ Unknown errors can embed a SQL fragment, a filesystem path, or a password. The c
 
 `AppError.message` is the exception. Callers must put only client-safe text there. The handler does not know which ordinary `Error` is safe, so it hides all of them.
 
-The handler does not log. Until the logger task, a 500 is visible to the client as a generic body and is not written to stderr. That is a gap, chosen so this task does not grow a second logging path.
+F05 writes the hidden failure to stderr. This handler still does not put that text in the JSON body. See `docs/learning/F05-logging.md`.
 
 `X-Powered-By` stays off. The 404 and 500 bodies are JSON.
 
@@ -52,9 +52,9 @@ The handler does not log. Until the logger task, a 500 is visible to the client 
 5. Why give errors a `code` as well as an HTTP status? Several failures share one status. Clients can branch on `not_found` without parsing English. The code is a short token, not a sentence.
 6. Why is the 404 message generic? Repeating `req.originalUrl` copies the query string into the body. The status and `not_found` already tell the client what happened.
 7. Why is `POST /api/v1/health` a 404? No route registered that method. `405` needs an `Allow` header and a list of methods that exist for the path. That response is a later HTTP task.
-8. Why subclass `Error`? `instanceof` works across the async boundary, stacks still exist for a future logger, and a non-error rejection stays distinguishable. A plain object with a status field would need its own convention.
+8. Why subclass `Error`? `instanceof` works across the async boundary, the stack is what the server log records, and a non-error rejection stays distinguishable. A plain object with a status field would need its own convention.
 9. When does `instanceof AppError` fail? It fails if a second copy of the module is loaded, because each copy has its own class. This package has one ESM evaluation per process. The handler still re-checks the fields so a broken instance becomes a generic 500.
-10. Why not log the real error here? A `console.error` in the handler would be a logger with no levels, no redaction, and no request id. The logging task owns that. The client contract does not depend on it.
+10. Why log the real error on stderr and not in the JSON? The client gets a fixed sentence. The operator gets the `Error` message and stack, tied to the request id. F05 owns that line. A `console.error` in this handler would have been a logger with no levels and no id. The client contract does not include the server line.
 
 ## From-scratch exercise
 In an empty folder, install Express 5 and write a four-parameter error middleware. Add `app.get("/boom", async () => { throw new Error("password=secret"); })` and a final three-parameter middleware that always calls `next` with a 404 error. Request `/boom` and `/missing`. Confirm both bodies are JSON, `/boom` does not contain `secret`, and neither body contains `stack`. Then delete one parameter from the error middleware, restart, and explain why the response changes.

@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
+import { Writable } from "node:stream";
 import express from "express";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
+import { createLogger } from "../dist/config/logger.js";
 import { AppError, NotFoundError } from "../dist/common/errors/app-error.js";
 import { errorHandler, notFoundHandler } from "../dist/common/middleware/error-handler.js";
+import { bindResponseLogger } from "../dist/common/middleware/request-log.js";
 
 const NOT_FOUND_BODY = {
   error: {
@@ -79,6 +82,11 @@ test("a thrown AppError keeps its status and message", async () => {
 
 test("a rejected async handler becomes a generic 500", async () => {
   const app = express();
+  const quiet = discardLogger();
+  app.use((_req, res, next) => {
+    bindResponseLogger(res, quiet);
+    next();
+  });
   app.get("/api/v1/boom", async () => {
     throw new Error("mysql password=super-secret");
   });
@@ -157,6 +165,8 @@ test("a mutated AppError code is not returned to the client", () => {
       body = payload;
     },
   };
+  const captured = captureLogs();
+  bindResponseLogger(res, captured.logger);
 
   errorHandler(error, {}, res, () => {
     assert.fail("headers were not sent");
@@ -165,6 +175,12 @@ test("a mutated AppError code is not returned to the client", () => {
   assert.deepEqual(body, INTERNAL_BODY);
   assert.equal(JSON.stringify(body).includes("super-secret"), false);
   assert.equal(JSON.stringify(body).includes("Product not found"), false);
+  const entries = captured.entries();
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].level, "error");
+  assert.equal(entries[0].message, "request failed");
+  assert.equal(entries[0].errorCode, "mysql password=super-secret");
+  assert.equal(entries[0].errorMessage, "Product not found");
 });
 
 test("errorHandler does not write JSON after the response has started", () => {
@@ -182,6 +198,8 @@ test("errorHandler does not write JSON after the response has started", () => {
       jsonCalled = true;
     },
   };
+  const captured = captureLogs();
+  bindResponseLogger(res, captured.logger);
 
   errorHandler(new Error("mysql password=super-secret"), {}, res, (err) => {
     forwarded = err;
@@ -191,7 +209,45 @@ test("errorHandler does not write JSON after the response has started", () => {
   assert.equal(jsonCalled, false);
   assert.ok(forwarded instanceof Error);
   assert.equal(forwarded.message, "mysql password=super-secret");
+  const entries = captured.entries();
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].errorMessage, "mysql password=super-secret");
+  assert.equal(captured.text().includes("\nmysql"), false);
 });
+
+/** @returns {import("../dist/config/logger.js").Logger} */
+function discardLogger() {
+  const sink = new Writable({
+    write(_chunk, _encoding, callback) {
+      callback();
+    },
+  });
+  return createLogger({ destination: sink, errorDestination: sink });
+}
+
+function captureLogs() {
+  /** @type {string[]} */
+  const chunks = [];
+  const stream = new Writable({
+    write(chunk, _encoding, callback) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk));
+      callback();
+    },
+  });
+  return {
+    logger: createLogger({ destination: stream, errorDestination: stream, level: "debug" }),
+    text() {
+      return chunks.join("");
+    },
+    entries() {
+      return chunks
+        .join("")
+        .split("\n")
+        .filter((line) => line !== "")
+        .map((line) => JSON.parse(line));
+    },
+  };
+}
 
 /**
  * @param {import("express").Express} app

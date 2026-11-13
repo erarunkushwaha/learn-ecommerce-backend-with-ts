@@ -12,6 +12,7 @@ import { listeningUrl, startServer, stopServer } from "../dist/server.js";
  * @type {Record<string, string>}
  */
 const LOCAL_DATA_STORE_ENV = {
+  LOG_LEVEL: "info",
   MYSQL_HOST: "127.0.0.1",
   MYSQL_PORT: "1",
   MYSQL_DATABASE: "ecom",

@@ -9,7 +9,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] generics and reusable response/repository types
 - [ ] utility types Partial/Pick/Omit/Record/Readonly
 - [ ] mapped/conditional types and type guards — `isAppError` / `isClientAppError` are type guards (F04, `src/common/errors/app-error.ts`, `docs/learning/F04-error-handling.md`); mapped and conditional types are F11
-- [ ] Express Request extension, runtime validation vs TS types — runtime validation versus `AppConfig` is F03 (`src/config/env.ts`, `docs/learning/F03-env-config.md`); Express Request extension is later
+- [ ] Express Request extension, runtime validation vs TS types — runtime validation versus `AppConfig` is F03 (`src/config/env.ts`, `docs/learning/F03-env-config.md`); F05 stores the request id on a child logger with a `WeakMap` instead of augmenting `Request` (`docs/learning/F05-logging.md`). The augmentation lab is F11
 
 ## Node.js
 
@@ -26,14 +26,14 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 
 ## Express / HTTP
 
-- [ ] request-response lifecycle and middleware order — F04 mounts routes, then a JSON 404, then one error middleware (`src/app.ts`, `docs/learning/F04-error-handling.md`); auth, validation, and the rest of the lifecycle are later
+- [ ] request-response lifecycle and middleware order — F05 runs request id, then the access log, then routes, then a JSON 404, then the error handler (`src/app.ts`, `docs/learning/F05-logging.md`); auth, validation, and the rest of the lifecycle are later
 - [ ] controllers/services/repositories separation
 - [x] sync/async errors and global handler — F04, `src/common/errors/app-error.ts`, `src/common/middleware/error-handler.ts`, `docs/learning/F04-error-handling.md`
 - [ ] authentication vs authorization / ownership checks
 - [ ] validation and HTTP status semantics — environment variables are validated before listen (F03, `src/config/env.ts`, `docs/learning/F03-env-config.md`). F04 maps `AppError` to its HTTP status and uses 404 for an unmatched route and 500 for an unexpected throw (`docs/learning/F04-error-handling.md`). Request-body validation and a fuller status catalog are later
 - [ ] CORS, CSRF, cookies and security headers
 - [ ] versioning, filtering, pagination, rate limits — `/api/v1` prefix only (F02); filtering, pagination, and rate limits are later
-- [ ] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` only (F02); readiness is F08; logging and correlation IDs are F05
+- [ ] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` (F02); structured logs and `X-Request-Id` (F05, `src/config/logger.ts`, `docs/learning/F05-logging.md`); readiness is F08
 
 ## MySQL / DBMS
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LOG_LEVELS, type LogLevel } from "./logger.js";
 
 /**
  * Validated process environment.
@@ -25,6 +26,7 @@ export type RedisSettings = {
 
 export type AppConfig = {
   port: number;
+  logLevel: LogLevel;
   mysql: MysqlSettings;
   redis: RedisSettings;
 };
@@ -69,8 +71,18 @@ function textWithDefault(name: string, fallback: string) {
   );
 }
 
+/** Empty or missing means `info`. The name is case-sensitive. */
+function logLevelField() {
+  const message = "LOG_LEVEL must be debug, info, warn, or error";
+  return z.preprocess(
+    (value: unknown) => (value === undefined || value === "" ? "info" : value),
+    z.enum(LOG_LEVELS, message),
+  );
+}
+
 const fields = {
   PORT: integerPort("PORT", DEFAULT_PORT, 0),
+  LOG_LEVEL: logLevelField(),
   MYSQL_HOST: textWithDefault("MYSQL_HOST", DEFAULT_MYSQL_HOST),
   MYSQL_PORT: integerPort("MYSQL_PORT", DEFAULT_MYSQL_PORT, 1),
   MYSQL_DATABASE: requiredText("MYSQL_DATABASE"),
@@ -102,6 +114,7 @@ export function loadConfig(env: Env): AppConfig {
   const parsed = parseSchema(appEnvSchema, env);
   return {
     port: parsed.PORT,
+    logLevel: parsed.LOG_LEVEL,
     mysql: toMysqlSettings(parsed),
     redis: toRedisSettings(parsed),
   };

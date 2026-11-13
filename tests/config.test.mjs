@@ -14,6 +14,7 @@ test("loadConfig applies the host-side defaults", () => {
   const config = loadConfig(REQUIRED);
 
   assert.equal(config.port, 3000);
+  assert.equal(config.logLevel, "info");
   assert.deepEqual(config.mysql, {
     host: "127.0.0.1",
     port: 3307,
@@ -75,6 +76,25 @@ test("loadConfig reports every broken field and omits secret values", () => {
       assert.match(error.message, /MYSQL_USER is required/);
       assert.match(error.message, /MYSQL_PASSWORD is required/);
       assert.equal(error.message.includes(password), false);
+      return true;
+    },
+  );
+});
+
+test("LOG_LEVEL defaults to info and rejects an unknown name", () => {
+  assert.equal(loadConfig({ ...REQUIRED, LOG_LEVEL: "" }).logLevel, "info");
+  assert.equal(loadConfig({ ...REQUIRED, LOG_LEVEL: "error" }).logLevel, "error");
+  assert.throws(
+    () => loadConfig({ ...REQUIRED, LOG_LEVEL: "verbose" }),
+    /LOG_LEVEL must be debug, info, warn, or error/,
+  );
+  assert.throws(
+    () => loadConfig({ ...REQUIRED, LOG_LEVEL: "warn\nsuper-secret" }),
+    (error) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /LOG_LEVEL must be debug, info, warn, or error/);
+      assert.equal(error.message.includes("super-secret"), false);
+      assert.equal(error.message.includes("\n"), false);
       return true;
     },
   );

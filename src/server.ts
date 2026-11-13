@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { pathToFileURL } from "node:url";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config/env.js";
+import { createLogger, type Logger } from "./config/logger.js";
 
 export const LISTEN_HOST = "127.0.0.1";
 
@@ -13,19 +14,29 @@ const PORT_ERROR = "PORT must be an integer from 0 through 65535";
  * Pass `0` to let the operating system choose a free port.
  * An omitted port loads the Zod config and uses `config.port`.
  * An explicit port is the test seam: it checks that number only.
+ * `logger` is the access log and the listen line. When it is omitted, an
+ * omitted port uses `config.logLevel` and an explicit port uses `info`.
  */
-export function startServer(port?: number): Promise<Server> {
+export function startServer(port?: number, logger?: Logger): Promise<Server> {
   return new Promise((resolve, reject) => {
     let listenPort: number;
+    let appLogger: Logger;
     try {
-      listenPort = port === undefined ? loadConfig(process.env).port : port;
+      if (port === undefined) {
+        const config = loadConfig(process.env);
+        listenPort = config.port;
+        appLogger = logger ?? createLogger({ level: config.logLevel });
+      } else {
+        listenPort = port;
+        appLogger = logger ?? createLogger();
+      }
       assertListenPort(listenPort);
     } catch (error) {
       reject(error instanceof Error ? error : new Error("Server failed to start"));
       return;
     }
 
-    const server = createServer(createApp());
+    const server = createServer(createApp({ logger: appLogger }));
     const onError = (error: Error): void => {
       // A failed bind may not be listening. Always surface the listen error.
       server.close(() => {
@@ -35,6 +46,8 @@ export function startServer(port?: number): Promise<Server> {
     server.once("error", onError);
     server.listen(listenPort, LISTEN_HOST, () => {
       server.off("error", onError);
+      const url = listeningUrl(server);
+      appLogger.info(`ecom-backend listening on ${url}`, { url });
       resolve(server);
     });
   });
@@ -86,14 +99,9 @@ if (
   invokedPath !== undefined &&
   import.meta.url === pathToFileURL(invokedPath).href
 ) {
-  startServer().then(
-    (server) => {
-      console.log(`ecom-backend listening on ${listeningUrl(server)}`);
-    },
-    (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Server failed to start";
-      console.error(message);
-      process.exitCode = 1;
-    },
-  );
+  startServer().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : "Server failed to start";
+    console.error(message);
+    process.exitCode = 1;
+  });
 }
