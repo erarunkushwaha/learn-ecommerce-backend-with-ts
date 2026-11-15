@@ -5,11 +5,22 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "node_modules/**", "coverage/**"],
+    ignores: ["dist/**", "**/dist/**", "node_modules/**", "coverage/**", "labs/**/reject/**"],
   },
   {
-    // Type-aware rules read tsconfig.json. That project includes src only.
+    // Type-aware rules for the HTTP app. tsconfig.json includes src only.
     files: ["src/**/*.ts"],
+    extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    // The F10 lab has its own tsconfig. projectService selects that project.
+    files: ["labs/**/*.ts"],
     extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {

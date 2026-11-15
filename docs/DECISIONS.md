@@ -119,3 +119,12 @@ This log distinguishes **proposed defaults** from **approved implementation choi
 - **Consequences:** `npm run lint` builds a TypeScript program, so it is slower than a syntax-only lint and it only type-checks files `tsconfig.json` includes. `.mjs` tests can still hide a bad type. A promise with no `await`, `return`, or `.catch` fails lint; the shutdown chain already ends in `.catch`, so it stays. `npm test` writes `dist`. `typecheck` does not. Two `tsc` processes writing `dist` at once can interleave. Prettier will not restyle the learning notes. npm reports ESLint 9.39.5 as unsupported upstream; it is the last major whose engines include Node 22.12.0. Jest and Vitest are still not chosen.
 - **Related task:** F09
 - **Date:** 2026-11-15
+
+### ADR-012: Standalone labs compile outside the application project
+- **Status:** Accepted
+- **Context:** F10 is a TypeScript concepts lab. The architecture already places experiments in `labs/`. The application `tsconfig.json` sets `rootDir` to `src` and emits the HTTP program to `dist/`. A lesson file under `src/` would be part of that emit. Node 22.12.0 can strip types only with an experimental flag, and this repo already typechecks by compiling with `tsc`.
+- **Decision:** `labs/f10-types/` has its own `tsconfig.json` with the same strict flags and `NodeNext`. Include is `./*.ts` in that directory, so `labs/f10-types/reject/` is not part of the program. Output goes to `labs/f10-types/dist/`. `npm run typecheck` stays `tsc -p tsconfig.json --noEmit` for `src/` only. `npm run lab:f10` compiles the lab and runs `dist/run.js`. `npm test` compiles the lab, checks the runtime narrowing, and compiles `reject/cheque.ts` expecting failure. ESLint's type-aware rules cover `labs/**/*.ts` through the lab project. `labs/**/reject/**` is an ESLint ignore. The HTTP modules do not import the lab. Prettier formats `labs/`.
+- **Alternatives:** Put the lesson in `src/labs` so one `tsc` covers it. Run the sources with `node --experimental-strip-types` and skip a second tsconfig. Teach the concepts only in a markdown note.
+- **Consequences:** Compiler flags live in two tsconfigs and can drift. `npm run typecheck` can pass while the lab is broken; `npm test` and `npm run lab:f10` are the lab checks. The lab writes a different `outDir` from the application `dist/`. Types in the lab are erased before Node runs the demo. The lab is not a validator for HTTP routes. A later lab follows the same split.
+- **Related task:** F10
+- **Date:** 2026-11-15

@@ -10,8 +10,9 @@ Interview-lab e-commerce API. The HTTP process is an Express app with a `/api/v1
 
 ## Scripts
 
-- `npm run typecheck` — strict TypeScript check, no emit
-- `npm run lint` — ESLint, including type-aware rules for `src/`
+- `npm run typecheck` — strict TypeScript check of `src/`, no emit
+- `npm run lab:f10` — compile `labs/f10-types` and print the narrowing demo
+- `npm run lint` — ESLint, including type-aware rules for `src/` and `labs/`
 - `npm run lint:fix` — ESLint with safe automatic fixes
 - `npm run format:check` — Prettier check for the code files
 - `npm run format` — rewrite those files with Prettier
@@ -65,7 +66,9 @@ An unknown path or method returns `404` and `{ "error": { "status": 404, "code":
 
 The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNext`, so relative imports use a `.js` specifier. See ADR-001, ADR-002, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, and ADR-011 in `docs/DECISIONS.md`.
 
-`npm run typecheck` does not write `dist`. `npm test` compiles first, then runs `node --test` on the quoted pattern `tests/**/*.test.mjs`, so the shell does not expand it. `npm run lint` and `npm run format:check` do not replace that pair. Prettier formats `src/`, `tests/`, `scripts/`, `eslint.config.js`, and `package.json`. It does not format markdown. See `docs/learning/F09-lint-format.md`.
+`npm run typecheck` does not write `dist`. `npm test` compiles first, then runs `node --test` on the quoted pattern `tests/**/*.test.mjs`, so the shell does not expand it. `npm run lint` and `npm run format:check` do not replace that pair. Prettier formats `src/`, `tests/`, `scripts/`, `labs/`, `eslint.config.js`, and `package.json`. It does not format markdown. See `docs/learning/F09-lint-format.md`.
+
+`npm run lab:f10` compiles `labs/f10-types` to `labs/f10-types/dist` and prints four demo lines. That program is not imported by the HTTP app. `npm run typecheck` does not compile it. `npm test` does. See `docs/learning/F10-types.md` and ADR-012.
 
 ## Layout
 
@@ -91,6 +94,8 @@ The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNex
 - `tests/errors.test.mjs` — JSON 404, `AppError` responses, and hidden unexpected errors
 - `tests/logging.test.mjs` — request ids, access logs, and the stderr copy of a hidden error
 - `tests/tooling.test.mjs` — lint, format, typecheck, and test script contract
+- `labs/f10-types/` — TypeScript lab for interfaces, unions, intersections, and narrowing
+- `tests/f10-types.test.mjs` — lab narrowing behavior and the rejected `cheque` method
 - `eslint.config.js` — ESLint flat config
 - `.prettierrc.json` — Prettier options
 - `.prettierignore` — generated files and markdown

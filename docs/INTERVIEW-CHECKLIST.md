@@ -5,7 +5,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 ## TypeScript
 
 - [x] strictNullChecks / noImplicitAny — F01, `tsconfig.json` (`"strict": true`), `docs/learning/F01-bootstrap.md`
-- [ ] interface vs type; union/intersection; discriminated union
+- [x] interface vs type; union/intersection; discriminated union — F10, `labs/f10-types/`, `docs/learning/F10-types.md`
 - [ ] generics and reusable response/repository types
 - [ ] utility types Partial/Pick/Omit/Record/Readonly
 - [ ] mapped/conditional types and type guards — `isAppError` / `isClientAppError` are type guards (F04, `src/common/errors/app-error.ts`, `docs/learning/F04-error-handling.md`); mapped and conditional types are F11
