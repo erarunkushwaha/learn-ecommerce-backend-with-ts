@@ -164,14 +164,17 @@ test("Redis settings require a password and default the host port", () => {
   assert.equal(settings.password, "local-only");
 });
 
-test("the process entry configures Sequelize and does not query it", async () => {
+test("the process entry probes MySQL through the pool and does not sync", async () => {
   const source = await readFile(new URL("../src/server.ts", import.meta.url), "utf8");
   assert.match(source, /from "\.\/config\/env\.js"/);
   assert.match(source, /from "\.\/database\/sequelize\.js"/);
   assert.match(source, /getSequelize\(\)/);
+  assert.match(source, /probeMysql\(sequelize\)/);
+  assert.match(source, /closeSequelize\(\)/);
+  assert.match(source, /process\.on\("SIGINT"/);
+  assert.match(source, /process\.on\("SIGTERM"/);
   assert.equal(source.includes("mysql2"), false);
   assert.equal(source.includes("data-stores"), false);
-  assert.equal(source.includes("authenticate"), false);
   assert.equal(source.includes(".query("), false);
   assert.equal(source.includes(".sync("), false);
 });

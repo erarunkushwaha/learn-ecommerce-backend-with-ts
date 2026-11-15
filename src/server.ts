@@ -1,25 +1,45 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { pathToFileURL } from "node:url";
-import { createApp } from "./app.js";
+import { MYSQL_UNAVAILABLE_MESSAGE } from "./common/errors/app-error.js";
+import { createApp, type ReadyCheck } from "./app.js";
 import { loadConfig } from "./config/env.js";
-import { createLogger, type Logger } from "./config/logger.js";
-import { getSequelize } from "./database/sequelize.js";
+import { createLogger, type LogFields, type Logger } from "./config/logger.js";
+import { closeSequelize, getSequelize, probeMysql } from "./database/sequelize.js";
 
 export const LISTEN_HOST = "127.0.0.1";
 
+/**
+ * How long `drainServer` waits for in-flight responses before it destroys
+ * the remaining sockets. Idle keep-alive connections are closed immediately.
+ */
+export const SHUTDOWN_DRAIN_MS = 10_000;
+
 const PORT_ERROR = "PORT must be an integer from 0 through 65535";
+
+export type StartServerOptions = {
+  /**
+   * Passed through to `GET /api/v1/ready`. The process entry passes `probeMysql`.
+   * An explicit port used by tests can omit it.
+   */
+  checkReady?: ReadyCheck;
+};
 
 /**
  * Listen on the loopback interface.
  * Pass `0` to let the operating system choose a free port.
  * An omitted port loads the Zod config and uses `config.port`.
  * An explicit port is the test seam: it checks that number only and does
- * not create the Sequelize pool. The process entry does that itself.
+ * not create the Sequelize pool. The process entry probes MySQL before it
+ * calls this function.
  * `logger` is the access log and the listen line. When it is omitted, an
  * omitted port uses `config.logLevel` and an explicit port uses `info`.
  */
-export function startServer(port?: number, logger?: Logger): Promise<Server> {
+export function startServer(
+  port?: number,
+  logger?: Logger,
+  options: StartServerOptions = {},
+): Promise<Server> {
   return new Promise((resolve, reject) => {
     let listenPort: number;
     let appLogger: Logger;
@@ -38,7 +58,9 @@ export function startServer(port?: number, logger?: Logger): Promise<Server> {
       return;
     }
 
-    const server = createServer(createApp({ logger: appLogger }));
+    const server = createServer(
+      createApp({ logger: appLogger, checkReady: options.checkReady }),
+    );
     const onError = (error: Error): void => {
       // A failed bind may not be listening. Always surface the listen error.
       server.close(() => {
@@ -57,8 +79,8 @@ export function startServer(port?: number, logger?: Logger): Promise<Server> {
 
 /**
  * Close the listener and existing sockets.
- * This is a hard stop for tests and local shutdown. Draining in-flight
- * requests on SIGINT/SIGTERM is a later task.
+ * This is a hard stop for tests. It does not wait for a handler to finish.
+ * SIGINT and SIGTERM use `drainServer` instead.
  */
 export function stopServer(server: Server): Promise<void> {
   if (!server.listening) {
@@ -74,6 +96,38 @@ export function stopServer(server: Server): Promise<void> {
       resolve();
     });
     server.closeAllConnections();
+  });
+}
+
+/**
+ * Stop accepting connections and wait until current responses finish.
+ * Idle keep-alive sockets are closed immediately, and again while draining,
+ * because a request that finishes after the first sweep would otherwise hold
+ * the process until Node's keep-alive timeout. A request still running when
+ * `timeoutMs` elapses is destroyed.
+ */
+export function drainServer(server: Server, timeoutMs = SHUTDOWN_DRAIN_MS): Promise<void> {
+  if (!server.listening) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const idleSweep = setInterval(() => {
+      server.closeIdleConnections();
+    }, 50);
+    const force = setTimeout(() => {
+      server.closeAllConnections();
+    }, timeoutMs);
+    server.close((error) => {
+      clearInterval(idleSweep);
+      clearTimeout(force);
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+    server.closeIdleConnections();
   });
 }
 
@@ -109,12 +163,79 @@ if (
 }
 
 /**
- * Configure the MySQL pool, then listen.
- * `getSequelize` parses the environment and does not connect. A refused
- * database still leaves the process able to serve liveness. Migrations are
- * a separate command. Readiness and pool shutdown are a later task.
+ * Probe MySQL, then listen. A refused database exits before `listen`.
+ * Redis is validated by `loadConfig` and is not probed. Migrations stay a
+ * separate command. SIGINT and SIGTERM drain HTTP, then the pool.
  */
 async function startProcess(): Promise<void> {
-  getSequelize();
-  await startServer();
+  const config = loadConfig(process.env);
+  const logger = createLogger({ level: config.logLevel });
+  const sequelize = getSequelize();
+  try {
+    await probeMysql(sequelize);
+  } catch (error) {
+    logger.error("mysql is unavailable", failureFields(error));
+    await closePool(logger);
+    throw new Error(MYSQL_UNAVAILABLE_MESSAGE);
+  }
+
+  let server: Server;
+  try {
+    server = await startServer(undefined, logger, {
+      checkReady: () => probeMysql(sequelize),
+    });
+  } catch (error) {
+    await closePool(logger);
+    throw error;
+  }
+  installShutdown(server, logger);
+}
+
+/**
+ * Drain the listener, then the pool. A second signal does not start another
+ * drain. Handlers are installed only after listen, and only in this entry,
+ * so an in-process `startServer(port)` does not catch the test runner's signals.
+ */
+function installShutdown(server: Server, logger: Logger): void {
+  let shuttingDown = false;
+  const onSignal = (signal: NodeJS.Signals): void => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    logger.info("shutdown started", { signal });
+    drainServer(server)
+      .then(() => closeSequelize())
+      .then(() => {
+        logger.info("shutdown finished", { signal });
+      })
+      .catch((error: unknown) => {
+        logger.error("shutdown failed", failureFields(error));
+        process.exitCode = 1;
+      });
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+}
+
+async function closePool(logger: Logger): Promise<void> {
+  try {
+    await closeSequelize();
+  } catch (error) {
+    logger.error("mysql pool close failed", failureFields(error));
+  }
+}
+
+function failureFields(error: unknown): LogFields {
+  if (error instanceof Error) {
+    return {
+      errorName: error.name,
+      errorMessage: error.message,
+      stack: error.stack ?? "",
+    };
+  }
+  return {
+    errorName: "NonError",
+    errorMessage: "Non-error rejection",
+  };
 }

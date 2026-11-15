@@ -9,7 +9,7 @@
 
 `closeSequelize()` drops the variable and then drains the pool. The next `getSequelize` can build a new instance.
 
-The process entry in `src/server.ts` calls `getSequelize()` and then `startServer()`. It does not call `authenticate`, `query`, or `sync`. `startServer(port)` is still the in-process test seam: it checks the port and does not build a pool. `createApp()` does not import this module. `GET /api/v1/health` stays liveness.
+`startServer(port)` is the in-process test seam: it checks the port and does not build a pool. `createApp()` does not import this module. `GET /api/v1/health` stays liveness. F08's process entry calls `getSequelize()`, then `probeMysql`, then `startServer()`. It still does not call `sync`.
 
 `npm run infra:check` is unchanged. It opens one `mysql2` connection, runs `SELECT 1`, and closes it. That connection is not borrowed from the pool.
 
@@ -43,21 +43,21 @@ A Singleton class hides the instance behind `getInstance()` and often constructs
 ## Security
 The password is a connection option. It is not written into the debug SQL line by this logger. `bind` keeps a value out of the statement text. `replacements` are escaped and then copied into the SQL string, so a secret passed that way would appear in a debug line. Prefer `bind` for values that must stay out of logs. Do not build SQL by concatenating request input.
 
-A refused login still lets the process listen. The entry never calls `authenticate`. Readiness is the task that should fail startup or the ready check when the password is wrong. Health remains liveness on purpose.
+A refused login used to let the process listen. F08 runs `probeMysql` before listen, so a wrong password exits, and `GET /api/v1/ready` reports a later refusal. Health remains liveness on purpose.
 
 The access-denied error names the database user and not the password. A later `Error.message` can still contain a secret if a caller puts one in a query. The F05 error log would then copy that message to stderr. Field redaction is still a later task.
 
 ## Interview questions
 1. Why one pool per process? Each connection is a thread or a memory slot on MySQL. A new Sequelize on every request opens another pool of up to 5 and does not share them. One module-level instance is the share.
 2. Why not a Singleton class? The module cache already guarantees one evaluation. A class would add a private constructor and a static accessor without changing the lifetime. The cache is the mechanism to be able to explain.
-3. Why does `new Sequelize` not connect? `min` is 0, and sequelize-pool creates sockets in `acquire`, which the first query triggers. The process can listen while Compose is stopped. The failure appears on the first query, not at boot.
-4. Why can `GET /api/v1/health` stay green when MySQL is down? F02 defined that route as process liveness. The pool object existing is not a round trip. Readiness is the later check.
+3. Why does `new Sequelize` not connect? `min` is 0, and sequelize-pool creates sockets in `acquire`, which the first query triggers. `startServer(port)` can listen while Compose is stopped. The process entry calls `probeMysql` before listen (F08), so that executable exits when MySQL is down.
+4. Why can `GET /api/v1/health` stay green when MySQL is down? F02 defined that route as process liveness. It does not call the probe. After a successful startup probe, a later MySQL failure leaves the process up and health green. `GET /api/v1/ready` reports that failure (F08).
 5. Why is the client port 3307 when `@@port` is 3306? `3307` is the host publish port. Inside the container MySQL listens on `3306`. Homebrew already uses host port `3306` and a different datadir. The pool dials the configured host port, which defaults to `3307`.
 6. Why does `getSequelize` parse Redis settings it does not use? It calls the same `loadConfig` as the process entry. A partial parse would let the pool exist while the rest of the contract was invalid.
 7. Why does a second `getSequelize` ignore a new host? The cache would be useless if every call rebuilt the pool. `createSequelize` is the explicit way to build another one. `closeSequelize` is the way to drop the process instance.
 8. What is the difference between `bind` and string concatenation? Concatenation treats a quote in the value as SQL. `bind` sends the value out of band, and this dialect rewrites `$name` to `?`. The debug line stores the statement, not the bind list.
 9. Why set charset and time zone before any table exists? They are session settings on each borrowed connection. Waiting for the first migration would leave those connections on the server default. The time zone value is a constant because Sequelize interpolates it.
-10. What does this pool not do on SIGINT? `closeSequelize` is exported and not registered. `stopServer` closes the HTTP socket only. An idle pool holds no MySQL socket. After a query, idle connections wait for the idle timeout or process exit. Draining on SIGINT and SIGTERM is the readiness task.
+10. What happens to this pool on SIGINT? The process entry drains the HTTP server and then calls `closeSequelize` (F08). `stopServer` is still the test hard stop and does not close the pool. An idle pooled connection is a socket. Leaving it open keeps the process alive until the 10 second idle timeout.
 
 ## From-scratch exercise
 In an empty folder, install `sequelize` and `mysql2`. Write a module with `getDb()` that constructs one Sequelize for `127.0.0.1:3307` on the first call and returns it thereafter, and `closeDb()` that drains it. Call `getDb()` twice and log `Object.is` on the results. Then call `closeDb()`, call `getDb()` again, and log `Object.is` against the first result. Explain why a route handler that calls `new Sequelize` would be a different result every time, and why `min: 0` lets the first log happen while MySQL is stopped.

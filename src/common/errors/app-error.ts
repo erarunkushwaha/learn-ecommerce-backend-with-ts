@@ -13,8 +13,17 @@ export type ErrorBody = {
 /** Machine code for an unmatched method or path. */
 export const NOT_FOUND_CODE = "not_found";
 
+/** Machine code when the process cannot serve traffic that needs MySQL. */
+export const NOT_READY_CODE = "not_ready";
+
 /** Machine code for any failure that is not an `AppError`. */
 export const INTERNAL_ERROR_CODE = "internal_error";
+
+/**
+ * Client and startup text for a failed MySQL probe.
+ * It names the dependency and includes no host, user, or password.
+ */
+export const MYSQL_UNAVAILABLE_MESSAGE = "MySQL is unavailable";
 
 const ERROR_CODE_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
 
@@ -49,6 +58,16 @@ export class AppError extends Error {
 export class NotFoundError extends AppError {
   constructor(message = "Not found") {
     super(404, NOT_FOUND_CODE, message);
+  }
+}
+
+/**
+ * MySQL did not accept the readiness probe.
+ * The driver error is logged by the caller. This message is the one clients see.
+ */
+export class NotReadyError extends AppError {
+  constructor(message = MYSQL_UNAVAILABLE_MESSAGE) {
+    super(503, NOT_READY_CODE, message);
   }
 }
 

@@ -2,7 +2,7 @@
   "name": "ecom-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness health, Zod environment config, JSON error handling, structured request logs, one idle Sequelize pool, and a migration command for Compose MySQL are in place. Local MySQL and Redis run in Docker Compose.",
+  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness and MySQL readiness, Zod environment config, JSON error handling, structured request logs, one Sequelize pool, a startup MySQL probe, SIGINT/SIGTERM drain, and a migration command for Compose MySQL are in place. Local MySQL and Redis run in Docker Compose.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"

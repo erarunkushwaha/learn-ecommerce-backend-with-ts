@@ -7,7 +7,9 @@ import { createLogger, type Logger } from "../config/logger.js";
  * `getSequelize` calls `loadConfig` itself and keeps the instance in module
  * scope. Construction does not open a socket: `min` is 0, and Sequelize
  * acquires a connection on the first query. There are no models and no
- * `sync()`. This module does not run migrations. Readiness stays later.
+ * `sync()`. This module does not run migrations. `probeMysql` is the
+ * readiness query. The HTTP process calls it before listen and on
+ * `GET /api/v1/ready`.
  * The host and port come from config. The host default is `127.0.0.1:3307`,
  * which is Compose. Port `3306` is not selected here.
  */
@@ -69,9 +71,20 @@ export function getSequelize(env: Env = process.env): Sequelize {
 }
 
 /**
+ * Borrow one connection and run Sequelize's authenticate query,
+ * `SELECT 1+1 AS result`. Pool construction does not do this.
+ * The rejection is the driver error. HTTP callers replace it with a safe message.
+ */
+export async function probeMysql(sequelize: Sequelize): Promise<void> {
+  await sequelize.authenticate();
+}
+
+/**
  * Drain the process pool and allow a later `getSequelize` to build another.
  * The cache is cleared before `close` resolves. A call that arrives during
- * close receives a new instance. Shutdown ordering belongs to a later task.
+ * close receives a new instance. The process entry calls this after a failed
+ * startup probe, after a failed listen, and after the HTTP drain on
+ * SIGINT and SIGTERM.
  */
 export async function closeSequelize(): Promise<void> {
   const current = cached;

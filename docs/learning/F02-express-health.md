@@ -18,7 +18,7 @@ Importing `src/app.ts` or `src/server.ts` does not open a port. The listen call 
 
 Health is one route function. A controller and a service would only return a constant, so those layers are not added yet.
 
-The success shape is `{ "data": payload }`. Later JSON responses should reuse `SuccessBody<T>` instead of inventing another wrapper. `"ok"` means this process accepted an HTTP request. It does not mean MySQL is up. That second check is readiness, and it is a later task.
+The success shape is `{ "data": payload }`. Later JSON responses should reuse `SuccessBody<T>` instead of inventing another wrapper. `"ok"` means this process accepted an HTTP request. It does not mean MySQL is up. That second check is `GET /api/v1/ready` (F08).
 
 ## Node and TypeScript
 `startServer` returns a Promise. Invalid `PORT` and a failed `listen` reject that Promise. The process entry prints `error.message` and sets `process.exitCode`. It does not print a stack to the client, because this failure happens before any response exists.
@@ -27,7 +27,7 @@ The success shape is `{ "data": payload }`. Later JSON responses should reuse `S
 
 `PORT` is validated by `src/config/env.ts` before listen. Unset or empty means `3000`. `0` means "ask the OS for a free port," which is how the tests avoid colliding with a busy port. Anything that is not an integer from 0 through 65535 fails startup. The same module requires the MySQL and Redis settings. See `docs/learning/F03-env-config.md`.
 
-`stopServer` stops accepting connections and then closes sockets that are already open. That keeps tests from hanging on an idle keep-alive connection. It does not wait for in-flight work. Signal handlers are not installed, so `SIGTERM` still uses Node's default: exit immediately.
+`stopServer` stops accepting connections and then closes sockets that are already open. That keeps tests from hanging on an idle keep-alive connection. It does not wait for in-flight work. The process entry installs SIGINT and SIGTERM in F08 and drains there. `stopServer` stays the hard close.
 
 ## Security
 The development server binds `127.0.0.1`, so another machine on the network cannot open it. `X-Powered-By: Express` is disabled so responses do not advertise the framework. The health handler ignores the query string and body, and it does not read secrets. CORS, Helmet, and rate limits are later tasks. Unknown paths now use the JSON error envelope from F04.
@@ -41,7 +41,7 @@ The development server binds `127.0.0.1`, so another machine on the network cann
 6. Why bind loopback only? This lab is a local process. Binding all interfaces would expose an unfinished API on the LAN. A deployment task can choose a different host.
 7. Why is there no controller for health? Controller, service, and repository layers earn their place when HTTP, policy, and persistence differ. A constant response does not need three files.
 8. What happens if `PORT=nope`? Startup rejects before `listen`. The process prints one message and exits non-zero. It does not open a port.
-9. Why can `stopServer` cut a live request? It is a test and local hard stop. A production shutdown should stop receiving, finish or time out current requests, then close. That signal path is not built yet.
+9. Why can `stopServer` cut a live request? It is the test hard stop. It closes open sockets immediately. The process entry uses `drainServer` on SIGINT and SIGTERM, waits for the current response, and then closes the pool (F08).
 10. Why does Express 5 still need `@types/express`? The published `express@5.3.0` package has no `.d.ts`. The matching DefinitelyTyped package supplies the types under `strict` TypeScript.
 
 ## From-scratch exercise

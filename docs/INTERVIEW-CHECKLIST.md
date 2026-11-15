@@ -22,7 +22,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] Streams, Buffers, pipeline and backpressure
 - [x] CommonJS vs ESM; module cache — F01, ADR-001, `docs/learning/F01-bootstrap.md`. F06 stores the Sequelize instance in that cache (`src/database/sequelize.ts`, `docs/learning/F06-sequelize-pool.md`)
 - [ ] CPU-bound vs IO-bound workloads, profiling and memory leaks
-- [ ] process signals, graceful shutdown and clustering/load balancer discussion
+- [ ] process signals, graceful shutdown and clustering/load balancer discussion — SIGINT and SIGTERM drain the HTTP server and then the pool (F08, `src/server.ts`, `docs/learning/F08-readiness-shutdown.md`); clustering and load balancers are later
 
 ## Express / HTTP
 
@@ -33,7 +33,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] validation and HTTP status semantics — environment variables are validated before listen (F03, `src/config/env.ts`, `docs/learning/F03-env-config.md`). F04 maps `AppError` to its HTTP status and uses 404 for an unmatched route and 500 for an unexpected throw (`docs/learning/F04-error-handling.md`). Request-body validation and a fuller status catalog are later
 - [ ] CORS, CSRF, cookies and security headers
 - [ ] versioning, filtering, pagination, rate limits — `/api/v1` prefix only (F02); filtering, pagination, and rate limits are later
-- [ ] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` (F02); structured logs and `X-Request-Id` (F05, `src/config/logger.ts`, `docs/learning/F05-logging.md`); readiness is F08
+- [x] health and readiness; logging and correlation IDs — liveness `GET /api/v1/health` (F02); readiness `GET /api/v1/ready` (F08, `src/server.ts`, `docs/learning/F08-readiness-shutdown.md`); structured logs and `X-Request-Id` (F05, `src/config/logger.ts`, `docs/learning/F05-logging.md`)
 
 ## MySQL / DBMS
 
@@ -90,7 +90,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 
 - [ ] Redis cache-aside, TTL/invalidation
 - [ ] queues, workers, retry/backoff and dead letter
-- [ ] logging, metrics, health checks — liveness response only (F02); logging and metrics are later
+- [ ] logging, metrics, health checks — liveness and readiness (F02, F08); structured logs (F05); metrics are later
 - [ ] unit/integration/e2e/security/concurrency tests
 - [ ] Docker Compose and CI — local MySQL and Redis Compose is I01; the app image and CI remain S08 and S09
 - [ ] reverse proxy, horizontal scaling, bottlenecks

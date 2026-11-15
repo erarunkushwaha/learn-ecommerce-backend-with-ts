@@ -1,11 +1,11 @@
 # F03 — Zod environment config
 
 ## Startup flow
-`npm start` and `npm run dev` load `.env` with Node's `--env-file`, then run `dist/server.js`. The direct-run path calls `startServer()` with no argument. That call parses `process.env` through `loadConfig` before `listen`.
+`npm start` and `npm run dev` load `.env` with Node's `--env-file`, then run `dist/server.js`. The direct-run path parses `process.env` through `loadConfig`, probes MySQL, and then calls `startServer()` with no port argument.
 
 `loadConfig` checks `PORT`, `LOG_LEVEL`, the MySQL settings, and the Redis settings with one Zod object. The returned value is an `AppConfig`: a listen port, a log level, plus `mysql` and `redis` objects. Field names such as `MYSQL_PORT` stay at the boundary. Later code reads `config.mysql.port`. `LOG_LEVEL` is documented with the logger in `docs/learning/F05-logging.md`.
 
-A valid result is a shape check. The process then binds `127.0.0.1` and serves `GET /api/v1/health`. Config parsing still does not open MySQL or Redis. The process entry now builds the F06 pool from this object and still does not query it. `npm run infra:check` is a separate connectivity check. It reuses `readMysqlSettings` and `readRedisSettings`, which are slices of the same field schemas, and then pings.
+A valid result is a shape check. Config parsing still does not open MySQL or Redis. The process entry builds the F06 pool from this object, and F08 runs `probeMysql` before listen. Redis is still not contacted. `npm run infra:check` is a separate connectivity check. It reuses `readMysqlSettings` and `readRedisSettings`, which are slices of the same field schemas, and then pings.
 
 `createApp()` does not read the environment. Importing `src/config/env.ts` does not read it either. Tests pass a plain object, or they spawn the process with an explicit environment.
 
