@@ -116,21 +116,25 @@ test("ready is mounted only on GET /api/v1/ready", async () => {
   });
 });
 
-test("probeMysql queries Compose MySQL and leaves the password out of the SQL log", {
-  timeout: 15_000,
-}, async () => {
-  const mysql = await composeMysql();
-  const captured = captureLogs("debug");
-  const db = createSequelize(mysql, captured.logger);
-  try {
-    await probeMysql(db);
-    const text = captured.text();
-    assert.match(text, /SELECT 1\+1 AS result/);
-    assert.equal(text.includes(mysql.password), false);
-  } finally {
-    await db.close();
-  }
-});
+test(
+  "probeMysql queries Compose MySQL and leaves the password out of the SQL log",
+  {
+    timeout: 15_000,
+  },
+  async () => {
+    const mysql = await composeMysql();
+    const captured = captureLogs("debug");
+    const db = createSequelize(mysql, captured.logger);
+    try {
+      await probeMysql(db);
+      const text = captured.text();
+      assert.match(text, /SELECT 1\+1 AS result/);
+      assert.equal(text.includes(mysql.password), false);
+    } finally {
+      await db.close();
+    }
+  },
+);
 
 test("a live server reports 503 when the MySQL probe is denied", { timeout: 15_000 }, async () => {
   const mysql = await composeMysql();
@@ -217,68 +221,80 @@ test("drainServer destroys a request that outlives the deadline", async () => {
   }
 });
 
-test("process entry serves liveness and readiness without dialing Redis, then SIGTERM drains", {
-  timeout: 15_000,
-}, async () => {
-  await assertSignalDrain("SIGTERM", { countRedis: true });
-});
+test(
+  "process entry serves liveness and readiness without dialing Redis, then SIGTERM drains",
+  {
+    timeout: 15_000,
+  },
+  async () => {
+    await assertSignalDrain("SIGTERM", { countRedis: true });
+  },
+);
 
 test("process entry drains on SIGINT", { timeout: 15_000 }, async () => {
   await assertSignalDrain("SIGINT", { countRedis: false });
 });
 
-test("process entry exits before listen when MySQL refuses the connection", {
-  timeout: 10_000,
-}, async () => {
-  const child = spawnServer({
-    PORT: "0",
-    MYSQL_HOST: "127.0.0.1",
-    MYSQL_PORT: "1",
-    MYSQL_DATABASE: "ecom",
-    MYSQL_USER: "ecom",
-    MYSQL_PASSWORD: "local-only",
-    REDIS_PASSWORD: "local-only",
-  });
-  const [code] = await once(child.process, "exit");
-  await child.stdioClosed;
-  const stderr = child.stderrText();
-  const stdout = child.stdoutText();
+test(
+  "process entry exits before listen when MySQL refuses the connection",
+  {
+    timeout: 10_000,
+  },
+  async () => {
+    const child = spawnServer({
+      PORT: "0",
+      MYSQL_HOST: "127.0.0.1",
+      MYSQL_PORT: "1",
+      MYSQL_DATABASE: "ecom",
+      MYSQL_USER: "ecom",
+      MYSQL_PASSWORD: "local-only",
+      REDIS_PASSWORD: "local-only",
+    });
+    const [code] = await once(child.process, "exit");
+    await child.stdioClosed;
+    const stderr = child.stderrText();
+    const stdout = child.stdoutText();
 
-  assert.equal(stderr.includes("local-only"), false);
-  assert.equal(stdout.includes("local-only"), false);
-  assert.equal(code, 1);
-  assert.equal(stdout.includes("listening"), false);
-  assert.match(stderr, /MySQL is unavailable/);
-  assert.match(stderr, /ECONNREFUSED/);
-});
+    assert.equal(stderr.includes("local-only"), false);
+    assert.equal(stdout.includes("local-only"), false);
+    assert.equal(code, 1);
+    assert.equal(stdout.includes("listening"), false);
+    assert.match(stderr, /MySQL is unavailable/);
+    assert.match(stderr, /ECONNREFUSED/);
+  },
+);
 
-test("process entry exits before listen when MySQL rejects the password", {
-  timeout: 15_000,
-}, async () => {
-  const mysql = await composeMysql();
-  const wrong = "wrong-password";
-  const child = spawnServer({
-    PORT: "0",
-    MYSQL_HOST: mysql.host,
-    MYSQL_PORT: String(mysql.port),
-    MYSQL_DATABASE: mysql.database,
-    MYSQL_USER: mysql.user,
-    MYSQL_PASSWORD: wrong,
-    REDIS_PASSWORD: "local-only",
-  });
-  const [code] = await once(child.process, "exit");
-  await child.stdioClosed;
-  const stderr = child.stderrText();
-  const stdout = child.stdoutText();
+test(
+  "process entry exits before listen when MySQL rejects the password",
+  {
+    timeout: 15_000,
+  },
+  async () => {
+    const mysql = await composeMysql();
+    const wrong = "wrong-password";
+    const child = spawnServer({
+      PORT: "0",
+      MYSQL_HOST: mysql.host,
+      MYSQL_PORT: String(mysql.port),
+      MYSQL_DATABASE: mysql.database,
+      MYSQL_USER: mysql.user,
+      MYSQL_PASSWORD: wrong,
+      REDIS_PASSWORD: "local-only",
+    });
+    const [code] = await once(child.process, "exit");
+    await child.stdioClosed;
+    const stderr = child.stderrText();
+    const stdout = child.stdoutText();
 
-  assert.equal(stderr.includes(mysql.password), false);
-  assert.equal(stderr.includes(wrong), false);
-  assert.equal(stdout.includes(mysql.password), false);
-  assert.equal(code, 1);
-  assert.equal(stdout.includes("listening"), false);
-  assert.match(stderr, /MySQL is unavailable/);
-  assert.match(stderr, /Access denied/);
-});
+    assert.equal(stderr.includes(mysql.password), false);
+    assert.equal(stderr.includes(wrong), false);
+    assert.equal(stdout.includes(mysql.password), false);
+    assert.equal(code, 1);
+    assert.equal(stdout.includes("listening"), false);
+    assert.match(stderr, /MySQL is unavailable/);
+    assert.match(stderr, /Access denied/);
+  },
+);
 
 /**
  * @param {"SIGINT" | "SIGTERM"} signal

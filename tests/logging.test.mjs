@@ -8,7 +8,11 @@ import { createApp } from "../dist/app.js";
 import { createLogger } from "../dist/config/logger.js";
 import { NotFoundError } from "../dist/common/errors/app-error.js";
 import { errorHandler, notFoundHandler } from "../dist/common/middleware/error-handler.js";
-import { accessLog, loggerForResponse, requestContext } from "../dist/common/middleware/request-log.js";
+import {
+  accessLog,
+  loggerForResponse,
+  requestContext,
+} from "../dist/common/middleware/request-log.js";
 import { listeningUrl, startServer, stopServer } from "../dist/server.js";
 
 const NOT_FOUND_BODY = {
@@ -51,7 +55,13 @@ test("logger writes one JSON line and keeps error lines on the error stream", ()
   assert.equal(entries[0].requestId, "abc");
   assert.equal(entries[0].errorMessage, "mysql password=super-secret\ninjected");
   assert.match(entries[0].time, /^\d{4}-\d{2}-\d{2}T/);
-  assert.equal(err.text().split("\n").filter((line) => line !== "").length, 1);
+  assert.equal(
+    err
+      .text()
+      .split("\n")
+      .filter((line) => line !== "").length,
+    1,
+  );
 });
 
 test("a health request echoes a request id and omits the query string", async () => {
@@ -153,7 +163,10 @@ test("an unknown route keeps the JSON 404 envelope and logs the status", async (
     assert.equal(misses.length, 2);
     assert.equal(misses[0].path, "/api/v1/missing");
     assert.equal(misses[0].requestId, "route-404");
-    assert.equal(captured.entries().some((entry) => entry.level === "error"), false);
+    assert.equal(
+      captured.entries().some((entry) => entry.level === "error"),
+      false,
+    );
     assert.equal(captured.text().includes("super-secret"), false);
   });
 });

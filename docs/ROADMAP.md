@@ -18,7 +18,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 - [x] **F06** — Configure MySQL + Sequelize pooled singleton/module instance. Use the I01 env vars and the Compose MySQL on `127.0.0.1:3307`. Keep Homebrew MySQL on port 3306 out of this app.
 - [x] **F07** — Migrations, seeders, disposable test DB and first migration runner
 - [x] **F08** — Readiness/liveness checks, startup failure and graceful shutdown
-- [ ] **F09** — Add ESLint/formatting and reliable typecheck/test scripts
+- [x] **F09** — Add ESLint/formatting and reliable typecheck/test scripts
 - [ ] **F10** — TypeScript lab: types/interfaces/unions/intersections/narrowing
 - [ ] **F11** — TypeScript lab: generics, utility types, conditional/mapped types and safe Express Request augmentation
 

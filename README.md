@@ -11,6 +11,10 @@ Interview-lab e-commerce API. The HTTP process is an Express app with a `/api/v1
 ## Scripts
 
 - `npm run typecheck` — strict TypeScript check, no emit
+- `npm run lint` — ESLint, including type-aware rules for `src/`
+- `npm run lint:fix` — ESLint with safe automatic fixes
+- `npm run format:check` — Prettier check for the code files
+- `npm run format` — rewrite those files with Prettier
 - `npm run build` — compile `src/` to `dist/`
 - `npm run dev` — compile, then run the HTTP server with `.env`
 - `npm start` — run the already compiled HTTP server with `.env`
@@ -59,7 +63,9 @@ An unknown path or method returns `404` and `{ "error": { "status": 404, "code":
 
 ## Module format
 
-The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNext`, so relative imports use a `.js` specifier. See ADR-001, ADR-002, ADR-004, ADR-005, ADR-006, ADR-007, and ADR-010 in `docs/DECISIONS.md`.
+The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNext`, so relative imports use a `.js` specifier. See ADR-001, ADR-002, ADR-004, ADR-005, ADR-006, ADR-007, ADR-010, and ADR-011 in `docs/DECISIONS.md`.
+
+`npm run typecheck` does not write `dist`. `npm test` compiles first, then runs `node --test` on the quoted pattern `tests/**/*.test.mjs`, so the shell does not expand it. `npm run lint` and `npm run format:check` do not replace that pair. Prettier formats `src/`, `tests/`, `scripts/`, `eslint.config.js`, and `package.json`. It does not format markdown. See `docs/learning/F09-lint-format.md`.
 
 ## Layout
 
@@ -84,3 +90,7 @@ The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNex
 - `tests/migrations.test.mjs` — baseline migrate, seed, undo, and disposable `ecom_test`
 - `tests/errors.test.mjs` — JSON 404, `AppError` responses, and hidden unexpected errors
 - `tests/logging.test.mjs` — request ids, access logs, and the stderr copy of a hidden error
+- `tests/tooling.test.mjs` — lint, format, typecheck, and test script contract
+- `eslint.config.js` — ESLint flat config
+- `.prettierrc.json` — Prettier options
+- `.prettierignore` — generated files and markdown

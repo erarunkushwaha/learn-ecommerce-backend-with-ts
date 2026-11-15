@@ -92,7 +92,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] queues, workers, retry/backoff and dead letter
 - [ ] logging, metrics, health checks — liveness and readiness (F02, F08); structured logs (F05); metrics are later
 - [ ] unit/integration/e2e/security/concurrency tests
-- [ ] Docker Compose and CI — local MySQL and Redis Compose is I01; the app image and CI remain S08 and S09
+- [ ] Docker Compose and CI — local MySQL and Redis Compose is I01; lint, format, typecheck, and test scripts are F09 (`package.json`, `eslint.config.js`, `docs/learning/F09-lint-format.md`); the app image and CI remain S08 and S09
 - [ ] reverse proxy, horizontal scaling, bottlenecks
 - [ ] load test, DB pool sizing and throughput — the pool cap is 5 (F06, `src/database/sequelize.ts`); measuring it is D12 and S12
 

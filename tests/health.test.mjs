@@ -76,21 +76,22 @@ test("server entry rejects a non-integer PORT", { timeout: 10_000 }, async () =>
   assert.equal(child.stderrText().includes("local-only"), false);
 });
 
-test("server entry rejects a missing Redis password before listen", { timeout: 10_000 }, async () => {
-  const child = spawnServer({}, ["REDIS_PASSWORD"]);
-  const [code] = await once(child.process, "exit");
-  await child.stdioClosed;
+test(
+  "server entry rejects a missing Redis password before listen",
+  { timeout: 10_000 },
+  async () => {
+    const child = spawnServer({}, ["REDIS_PASSWORD"]);
+    const [code] = await once(child.process, "exit");
+    await child.stdioClosed;
 
-  assert.equal(code, 1);
-  assert.equal(child.stdoutText(), "");
-  assert.match(child.stderrText(), /REDIS_PASSWORD is required/);
-});
+    assert.equal(code, 1);
+    assert.equal(child.stdoutText(), "");
+    assert.match(child.stderrText(), /REDIS_PASSWORD is required/);
+  },
+);
 
 test("startServer rejects an explicit port outside 0 through 65535", async () => {
-  await assert.rejects(
-    () => startServer(65536),
-    /PORT must be an integer from 0 through 65535/,
-  );
+  await assert.rejects(() => startServer(65536), /PORT must be an integer from 0 through 65535/);
 });
 
 /**

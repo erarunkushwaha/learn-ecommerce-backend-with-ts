@@ -33,10 +33,7 @@ export async function checkMysqlConnection(settings: MysqlSettings): Promise<voi
 }
 
 /** Send AUTH and PING. This does not store keys or start a worker. */
-export function checkRedisConnection(
-  settings: RedisSettings,
-  timeoutMs = 5000,
-): Promise<void> {
+export function checkRedisConnection(settings: RedisSettings, timeoutMs = 5000): Promise<void> {
   if (settings.password === "") {
     return Promise.reject(new Error("REDIS_PASSWORD is required"));
   }
@@ -75,9 +72,7 @@ export function checkRedisConnection(
         finish();
         return;
       }
-      const failure = text
-        .split("\r\n")
-        .find((line) => line.startsWith("-"));
+      const failure = text.split("\r\n").find((line) => line.startsWith("-"));
       if (failure !== undefined) {
         finish(new Error(`Redis rejected the ping: ${failure}`));
       }

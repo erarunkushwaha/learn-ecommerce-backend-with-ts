@@ -63,7 +63,7 @@ Migrations and seeders are a separate command (F07, ADR-008). `npm run db:migrat
 Repository (storage boundary); Strategy + Factory (mock payment processors); Observer/event dispatcher (order-created notification); dependency injection for test seams; singleton/module-cached DB instance with trade-off explanation. Consider outbox when reliability exercise arrives.
 
 ## Testing and operations
-Separate unit tests from integration tests. Use a disposable MySQL instance; avoid tests against production DB. Database migrations are source of truth; seeds deterministic. Include lint, typecheck and focused test scripts, health/readiness distinction, structured logs, request correlation, graceful SIGINT/SIGTERM handling.
+Separate unit tests from integration tests. Use a disposable MySQL instance; avoid tests against production DB. Database migrations are source of truth; seeds deterministic. F09 adds `npm run lint`, `npm run format:check`, and keeps `npm run typecheck` and `npm test` as separate commands. Lint is ESLint 9 with type-aware rules on `src/**/*.ts`. Prettier formats the code files and does not format markdown. `typecheck` is `tsc --noEmit` and does not write `dist`. `npm test` compiles with the same `tsconfig.json`, then runs the Node.js test runner on a quoted `tests/**/*.test.mjs` glob. Jest or Vitest is still a later choice. Health and readiness stay distinct. Logs are structured, requests carry a correlation id, and SIGINT and SIGTERM drain the process.
 
 ## Scale-up discussion
 Single deployable first. Study stateless API replicas behind load balancer, shared sessions/token persistence, Redis/DB bottlenecks, pool sizing, queues and backpressure. **Do not implement microservices purely to demonstrate scaling.**

@@ -9,9 +9,6 @@ export function bootstrapMessage(): string {
 
 const invokedPath = process.argv[1];
 
-if (
-  invokedPath !== undefined &&
-  import.meta.url === pathToFileURL(invokedPath).href
-) {
+if (invokedPath !== undefined && import.meta.url === pathToFileURL(invokedPath).href) {
   console.log(bootstrapMessage());
 }

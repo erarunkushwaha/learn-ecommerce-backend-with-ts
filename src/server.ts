@@ -58,9 +58,7 @@ export function startServer(
       return;
     }
 
-    const server = createServer(
-      createApp({ logger: appLogger, checkReady: options.checkReady }),
-    );
+    const server = createServer(createApp({ logger: appLogger, checkReady: options.checkReady }));
     const onError = (error: Error): void => {
       // A failed bind may not be listening. Always surface the listen error.
       server.close(() => {
@@ -151,10 +149,7 @@ function isTcpAddress(address: string | AddressInfo | null): address is AddressI
 
 const invokedPath = process.argv[1];
 
-if (
-  invokedPath !== undefined &&
-  import.meta.url === pathToFileURL(invokedPath).href
-) {
+if (invokedPath !== undefined && import.meta.url === pathToFileURL(invokedPath).href) {
   startProcess().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Server failed to start";
     console.error(message);

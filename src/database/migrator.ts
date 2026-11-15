@@ -17,9 +17,7 @@ import type { LogFields, Logger } from "../config/logger.js";
 export const MIGRATION_HISTORY_TABLE = "SequelizeMeta";
 export const SEEDER_HISTORY_TABLE = "SequelizeData";
 
-const HISTORY_TABLES = [MIGRATION_HISTORY_TABLE, SEEDER_HISTORY_TABLE] as const;
-
-type HistoryTable = (typeof HISTORY_TABLES)[number];
+type HistoryTable = typeof MIGRATION_HISTORY_TABLE | typeof SEEDER_HISTORY_TABLE;
 type SchemaContext = QueryInterface;
 type SchemaStep = (params: MigrationParams<SchemaContext>) => Promise<void>;
 
@@ -144,7 +142,9 @@ function asStep(value: unknown, filepath: string, exportName: string): SchemaSte
   return (params) => Promise.resolve(value(params)).then(() => undefined);
 }
 
-function isSchemaStep(value: unknown): value is (params: MigrationParams<SchemaContext>) => unknown {
+function isSchemaStep(
+  value: unknown,
+): value is (params: MigrationParams<SchemaContext>) => unknown {
   return typeof value === "function";
 }
 

@@ -6,11 +6,7 @@ import { Writable } from "node:stream";
 import mysql from "mysql2/promise";
 import { loadConfig } from "../dist/config/env.js";
 import { createLogger } from "../dist/config/logger.js";
-import {
-  BASELINE_CREATED_AT,
-  BASELINE_LABEL,
-  BASELINE_TABLE,
-} from "../dist/database/baseline.js";
+import { BASELINE_CREATED_AT, BASELINE_LABEL, BASELINE_TABLE } from "../dist/database/baseline.js";
 import { parseSchemaCommand, runSchemaCommand } from "../dist/database/cli.js";
 import { MIGRATION_HISTORY_TABLE, SEEDER_HISTORY_TABLE } from "../dist/database/migrator.js";
 
@@ -51,97 +47,97 @@ test("schema commands reject unknown argv and do not call sync", async () => {
   assert.equal(server.includes("database/cli.js"), false);
 });
 
-test("the baseline migration creates and rolls back on a disposable database", { timeout: 30_000 }, async () => {
-  const envFile = parseEnv(await readFile(new URL("../.env", import.meta.url), "utf8"));
-  const config = loadConfig(envFile);
-  assert.equal(config.mysql.host, "127.0.0.1");
-  assert.equal(config.mysql.port, 3307);
-  const rootPassword = envFile.MYSQL_ROOT_PASSWORD;
-  assert.equal(typeof rootPassword, "string");
-  assert.ok(rootPassword !== undefined && rootPassword.length > 0);
+test(
+  "the baseline migration creates and rolls back on a disposable database",
+  { timeout: 30_000 },
+  async () => {
+    const envFile = parseEnv(await readFile(new URL("../.env", import.meta.url), "utf8"));
+    const config = loadConfig(envFile);
+    assert.equal(config.mysql.host, "127.0.0.1");
+    assert.equal(config.mysql.port, 3307);
+    const rootPassword = envFile.MYSQL_ROOT_PASSWORD;
+    assert.equal(typeof rootPassword, "string");
+    assert.ok(rootPassword !== undefined && rootPassword.length > 0);
 
-  const before = await tableNames(config.mysql, config.mysql.database);
-  const logs = captureLogs();
-  const testEnv = { ...envFile, MYSQL_DATABASE: DISPOSABLE_DATABASE };
+    const before = await tableNames(config.mysql, config.mysql.database);
+    const logs = captureLogs();
+    const testEnv = { ...envFile, MYSQL_DATABASE: DISPOSABLE_DATABASE };
 
-  try {
-    await withDisposableDatabase(config.mysql, rootPassword, async () => {
-      await runSchemaCommand("migrate", testEnv, logs.logger);
-      await runSchemaCommand("migrate", testEnv, logs.logger);
-      let names = await historyNames(config.mysql, MIGRATION_HISTORY_TABLE);
-      assert.deepEqual(names, ["20261115140000-baseline.js"]);
-      assert.deepEqual(await tableNames(config.mysql, DISPOSABLE_DATABASE), [
-        MIGRATION_HISTORY_TABLE,
-        BASELINE_TABLE,
-      ]);
-      await assertBaselineShape(config.mysql);
-      assert.deepEqual(await baselineRows(config.mysql), []);
+    try {
+      await withDisposableDatabase(config.mysql, rootPassword, async () => {
+        await runSchemaCommand("migrate", testEnv, logs.logger);
+        await runSchemaCommand("migrate", testEnv, logs.logger);
+        let names = await historyNames(config.mysql, MIGRATION_HISTORY_TABLE);
+        assert.deepEqual(names, ["20261115140000-baseline.js"]);
+        assert.deepEqual(await tableNames(config.mysql, DISPOSABLE_DATABASE), [
+          MIGRATION_HISTORY_TABLE,
+          BASELINE_TABLE,
+        ]);
+        await assertBaselineShape(config.mysql);
+        assert.deepEqual(await baselineRows(config.mysql), []);
 
-      await runSchemaCommand("seed", testEnv, logs.logger);
-      await runSchemaCommand("seed", testEnv, logs.logger);
-      names = await historyNames(config.mysql, SEEDER_HISTORY_TABLE);
-      assert.deepEqual(names, ["20261115140000-baseline-seed.js"]);
-      assert.deepEqual(await baselineRows(config.mysql), [
-        { label: BASELINE_LABEL, createdAt: BASELINE_CREATED_AT },
-      ]);
-      assert.deepEqual(await tableNames(config.mysql, DISPOSABLE_DATABASE), [
-        SEEDER_HISTORY_TABLE,
-        MIGRATION_HISTORY_TABLE,
-        BASELINE_TABLE,
-      ]);
+        await runSchemaCommand("seed", testEnv, logs.logger);
+        await runSchemaCommand("seed", testEnv, logs.logger);
+        names = await historyNames(config.mysql, SEEDER_HISTORY_TABLE);
+        assert.deepEqual(names, ["20261115140000-baseline-seed.js"]);
+        assert.deepEqual(await baselineRows(config.mysql), [
+          { label: BASELINE_LABEL, createdAt: BASELINE_CREATED_AT },
+        ]);
+        assert.deepEqual(await tableNames(config.mysql, DISPOSABLE_DATABASE), [
+          SEEDER_HISTORY_TABLE,
+          MIGRATION_HISTORY_TABLE,
+          BASELINE_TABLE,
+        ]);
 
-      await runSchemaCommand("seed:undo", testEnv, logs.logger);
-      assert.deepEqual(await historyNames(config.mysql, SEEDER_HISTORY_TABLE), []);
-      assert.deepEqual(await baselineRows(config.mysql), []);
-      assert.ok((await tableNames(config.mysql, DISPOSABLE_DATABASE)).includes(BASELINE_TABLE));
+        await runSchemaCommand("seed:undo", testEnv, logs.logger);
+        assert.deepEqual(await historyNames(config.mysql, SEEDER_HISTORY_TABLE), []);
+        assert.deepEqual(await baselineRows(config.mysql), []);
+        assert.ok((await tableNames(config.mysql, DISPOSABLE_DATABASE)).includes(BASELINE_TABLE));
 
-      await runSchemaCommand("migrate:undo", testEnv, logs.logger);
-      assert.deepEqual(await historyNames(config.mysql, MIGRATION_HISTORY_TABLE), []);
-      assert.deepEqual(await tableNames(config.mysql, DISPOSABLE_DATABASE), [
-        SEEDER_HISTORY_TABLE,
-        MIGRATION_HISTORY_TABLE,
-      ]);
+        await runSchemaCommand("migrate:undo", testEnv, logs.logger);
+        assert.deepEqual(await historyNames(config.mysql, MIGRATION_HISTORY_TABLE), []);
+        assert.deepEqual(await tableNames(config.mysql, DISPOSABLE_DATABASE), [
+          SEEDER_HISTORY_TABLE,
+          MIGRATION_HISTORY_TABLE,
+        ]);
 
-      await assert.rejects(
-        () => runSchemaCommand("seed", testEnv, logs.logger),
-        (error) => {
-          assert.ok(error instanceof Error);
-          assert.equal(error.message.includes(config.mysql.password), false);
-          assert.equal(error.message.includes(rootPassword), false);
-          return true;
-        },
-      );
-      assert.equal(
-        (await tableNames(config.mysql, DISPOSABLE_DATABASE)).includes(BASELINE_TABLE),
-        false,
-      );
+        await assert.rejects(
+          () => runSchemaCommand("seed", testEnv, logs.logger),
+          (error) => {
+            assert.ok(error instanceof Error);
+            assert.equal(error.message.includes(config.mysql.password), false);
+            assert.equal(error.message.includes(rootPassword), false);
+            return true;
+          },
+        );
+        assert.equal(
+          (await tableNames(config.mysql, DISPOSABLE_DATABASE)).includes(BASELINE_TABLE),
+          false,
+        );
 
-      await runSchemaCommand("migrate", testEnv, logs.logger);
-      await runSchemaCommand("seed", testEnv, logs.logger);
-      assert.deepEqual(await baselineRows(config.mysql), [
-        { label: BASELINE_LABEL, createdAt: BASELINE_CREATED_AT },
-      ]);
-      const current = await scalar(
-        config.mysql,
-        DISPOSABLE_DATABASE,
-        "SELECT DATABASE() AS db",
-      );
-      assert.equal(current, DISPOSABLE_DATABASE);
-    });
-  } finally {
-    const after = await tableNames(config.mysql, config.mysql.database);
-    assert.deepEqual(after, before);
-  }
+        await runSchemaCommand("migrate", testEnv, logs.logger);
+        await runSchemaCommand("seed", testEnv, logs.logger);
+        assert.deepEqual(await baselineRows(config.mysql), [
+          { label: BASELINE_LABEL, createdAt: BASELINE_CREATED_AT },
+        ]);
+        const current = await scalar(config.mysql, DISPOSABLE_DATABASE, "SELECT DATABASE() AS db");
+        assert.equal(current, DISPOSABLE_DATABASE);
+      });
+    } finally {
+      const after = await tableNames(config.mysql, config.mysql.database);
+      assert.deepEqual(after, before);
+    }
 
-  const text = logs.text();
-  assert.match(text, /"message":"migrations applied"/);
-  assert.match(text, /20261115140000-baseline\.js/);
-  assert.match(text, /"message":"migrations reverted"/);
-  assert.match(text, /"message":"seeders applied"/);
-  assert.match(text, /20261115140000-baseline-seed\.js/);
-  assert.equal(text.includes(config.mysql.password), false);
-  assert.equal(text.includes(rootPassword), false);
-});
+    const text = logs.text();
+    assert.match(text, /"message":"migrations applied"/);
+    assert.match(text, /20261115140000-baseline\.js/);
+    assert.match(text, /"message":"migrations reverted"/);
+    assert.match(text, /"message":"seeders applied"/);
+    assert.match(text, /20261115140000-baseline-seed\.js/);
+    assert.equal(text.includes(config.mysql.password), false);
+    assert.equal(text.includes(rootPassword), false);
+  },
+);
 
 /**
  * @param {import("../dist/config/env.js").MysqlSettings} mysqlSettings
@@ -160,10 +156,9 @@ async function withDisposableDatabase(mysqlSettings, rootPassword, fn) {
   let granted = false;
   try {
     await root.query("DROP DATABASE IF EXISTS ??", [DISPOSABLE_DATABASE]);
-    await root.query(
-      "CREATE DATABASE ?? CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci",
-      [DISPOSABLE_DATABASE],
-    );
+    await root.query("CREATE DATABASE ?? CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci", [
+      DISPOSABLE_DATABASE,
+    ]);
     await root.query("GRANT ALL PRIVILEGES ON ??.* TO ??@?", [
       DISPOSABLE_DATABASE,
       mysqlSettings.user,

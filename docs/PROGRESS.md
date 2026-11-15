@@ -1,13 +1,13 @@
 # Project Progress
 
 ## Status
-F08 is verified. `GET /api/v1/health` is still liveness. `GET /api/v1/ready` reports MySQL. The process entry runs that probe before listen and exits when MySQL is refused or the password is rejected. SIGINT and SIGTERM drain the HTTP server and then the pool. Redis is not probed. Migrations still do not run at startup. `sync({ force: true })` is not used.
+F09 is verified. `npm run lint` is ESLint 9 with type-aware rules on `src`. `npm run format:check` is Prettier on the code files. `npm run typecheck` is still `tsc --noEmit`. `npm test` compiles, then runs Node's test runner on a quoted `tests/**/*.test.mjs` glob. `GET /api/v1/health` is still liveness. `GET /api/v1/ready` reports MySQL. The process entry runs that probe before listen and exits when MySQL is refused or the password is rejected. SIGINT and SIGTERM drain the HTTP server and then the pool. Redis is not probed. Migrations still do not run at startup. `sync({ force: true })` is not used.
 
 ## Current / next task
-- **Task ID:** F09
-- **Title:** Add ESLint/formatting and reliable typecheck/test scripts
-- **Expected outcome:** ESLint and formatting scripts, with typecheck and test remaining the verification path.
-- **Scope limits:** do not add user, catalog, or auth routes. Do not add Redis or BullMQ clients.
+- **Task ID:** F10
+- **Title:** TypeScript lab: types/interfaces/unions/intersections/narrowing
+- **Expected outcome:** A runnable lab for those type concepts. Do not start it in the F09 session.
+- **Scope limits:** do not add user, catalog, or auth routes. Do not add Redis or BullMQ clients. Do not start F10 here.
 
 ## Completed and verified tasks
 - **F01** — Bootstrap npm, strict TypeScript, scripts, gitignore, and README. Verified 2026-11-11 on Node v22.12.0 / npm 10.9.0.
@@ -19,15 +19,17 @@ F08 is verified. `GET /api/v1/health` is still liveness. `GET /api/v1/ready` rep
 - **F06** — One module-cached Sequelize pool for Compose MySQL. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. Sequelize 6.37.8, mysql2 3.24.6. Compose MySQL was healthy on `127.0.0.1:3307`.
 - **F07** — Umzug migrations and seeders, disposable `ecom_test`, and the baseline migration. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. Umzug 3.8.3. `ecom` was left migrated and seeded. `ecom_test` was dropped.
 - **F08** — Liveness stays process-only. Readiness reports MySQL. Startup exits when that probe fails. SIGINT and SIGTERM drain HTTP and the pool. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. Compose MySQL was healthy on `127.0.0.1:3307`.
+- **F09** — ESLint 9 flat config, Prettier, and a quoted Node test glob. `typecheck` stays no-emit. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. ESLint 9.39.5, typescript-eslint 8.72.2, Prettier 3.10.1.
 
 ## Checks performed
-- `npm test` — exit 0. Compiles with `tsc -p tsconfig.json`, then 58 passed, 0 failed (the previous eight files plus `tests/readiness.test.mjs`). The new file checked the ready envelope, a 503 that hides driver text, an omitted probe, `probeMysql` against Compose (`SELECT 1+1 AS result`, password absent from the SQL log), a denied login that leaves the process listening, in-flight drain, the 200ms drain deadline, SIGTERM and SIGINT exit 0 with shutdown logs and no Redis connection, connection refused before listen, and access denied before listen. Logs and client bodies did not contain the app password or the wrong password.
-- `npm run typecheck` — exit 0 (`tsc -p tsconfig.json --noEmit`).
+- `npm run typecheck && npm run lint && npm run format:check && npm test` — exit 0. `typecheck` was `tsc -p tsconfig.json --noEmit`. `lint` was `eslint .`. `format:check` reported all matched files use Prettier. `npm test` compiled, then 60 passed, 0 failed (the previous 58 plus two tests in `tests/tooling.test.mjs`). The spec reporter printed `ℹ pass 60` / `ℹ fail 0`.
+- `sh -c 'printf "%s\n" tests/*.test.mjs'` printed 10 paths. `sh -c 'printf "%s\n" tests/**/*.test.mjs'` printed the literal `tests/**/*.test.mjs` (globstar is off, so `**` did not expand).
+- `npm audit` — exit 1. 9 moderate, 0 high, 0 critical. `minimatch` GHSA-g3hv-75wg-m249 through `typescript-eslint` 8.72.2. `uuid` GHSA-w5hq-g745-h8pq through `sequelize`, same as F07. `npm audit fix --force` would install `typescript-eslint@8.36.0` or `sequelize@3.30.0`. It was not run.
 - `docker compose ps` — `mysql` and `redis` up and healthy. Adminer up.
-- The dev process already listening on `127.0.0.1:3000` was started before this change and was not restarted. It is still the previous build.
+- The dev process already listening on `127.0.0.1:3000` was not restarted. `npm test` recompiled `dist`. The listening process is still the previous one. F09 does not change the HTTP contract.
 
 ## Blockers
-_None for F08._
+_None for F09._
 
 ## Decisions made in implementation
 - ADR-001 (accepted): ESM with TypeScript `NodeNext`.
@@ -40,6 +42,7 @@ _None for F08._
 - ADR-008 (accepted): Umzug runners for compiled migration and seeder files. History tables `SequelizeMeta` and `SequelizeData`. The CLI uses `readMysqlSettings`. The HTTP process does not migrate. Tests use disposable `ecom_test`.
 - ADR-009 (accepted): application ids are `BIGINT UNSIGNED AUTO_INCREMENT`. Money, when a table has a price, is `DECIMAL(12,2)` plus `CHAR(3)` currency. Timestamps are `DATETIME(3)` at session `+00:00`.
 - ADR-010 (accepted): health stays liveness. `GET /api/v1/ready` uses an injected probe. The process entry passes `probeMysql` (`SELECT 1+1 AS result`), exits before listen on failure, and on SIGINT/SIGTERM drains HTTP for up to 10 seconds and then closes the pool. `createApp()` does not import the pool. Redis is not probed.
+- ADR-011 (accepted): ESLint 9 flat config and Prettier. Type-aware rules apply to `src/**/*.ts` only. `npm run typecheck` does not emit. `npm test` quotes `tests/**/*.test.mjs` and uses the spec reporter. ESLint 10 was not installed because it rejects Node 22.12.0. Jest and Vitest stay later.
 
 ## Known limitations
 - An `Error.message` or stack on stderr can contain a password. The client body does not. The migration CLI prints `error.message` only. Field redaction is B07. The readiness and startup logs copy the driver message for the same reason.
@@ -70,18 +73,23 @@ _None for F08._
 - Redis `/data` is an anonymous volume created by the image. No keys are stored.
 - The example passwords are local Compose credentials. They do not authenticate to Homebrew MySQL.
 - Invalid config stays plain `Error` text on stderr. A failed MySQL probe adds one JSON error line and then the plain message `MySQL is unavailable`.
-- Sequelize 6.37.8 depends on `uuid` 8.x. `npm audit` from F07 reported a moderate advisory when a caller passes `buf`. This task does not call `uuid` and does not add a dependency. Audit was not re-run.
+- Sequelize 6.37.8 depends on `uuid` 8.x. `npm audit` reports GHSA-w5hq-g745-h8pq (moderate) when a caller passes `buf`. This code does not call `uuid`. The forced fix would downgrade Sequelize to 3.30.0, so it was not applied.
+- `typescript-eslint` 8.72.2 depends on `minimatch` that `npm audit` reports as GHSA-g3hv-75wg-m249 (moderate). The forced fix would downgrade `typescript-eslint` to 8.36.0. It was not applied. Lint uses the installed 8.72.2.
+- npm warned that `eslint@9.39.5` is unsupported upstream, and that nested `eslint-visitor-keys@5.0.1` wants Node `^20.19.0 || ^22.13.0 || >=24`. ESLint 10 has that same engines field. `npm run lint` still exited 0 on Node 22.12.0.
+- Type-aware ESLint rules do not cover `tests/**/*.mjs` or `scripts/**/*.mjs`. Those files are outside `tsconfig.json`.
+- Prettier does not format markdown, `docs/`, or `prompts/`. Print width is 100.
+- `npm test` writes `dist`. `npm run typecheck` does not. Two compiles writing `dist` at the same time can interleave.
+- `HistoryTable` is the union of the two exported history-table names. The unused runtime array was removed so lint would accept the file. The legal names are unchanged.
 
 ## Recent task handoff (keep <= 12 lines)
-- Completed: F08
-- Next task: F09 (ESLint/formatting and typecheck/test scripts). Do not start it here
-- Health: `GET /api/v1/health` → `{ "data": { "status": "ok" } }`. It does not probe
-- Ready: `GET /api/v1/ready` → `{ "data": { "mysql": "ok" } }` or `503` / `not_ready`
-- Startup probe is `probeMysql` (`SELECT 1+1 AS result`) before listen. Failure exits 1
-- SIGINT and SIGTERM drain HTTP (10s deadline, idle sweep) then `closeSequelize`
-- `createApp()` does not import the pool. `startServer(port)` does not probe or catch signals
-- Redis is not dialed. Migrations do not run at startup. `sync()` is not called
-- Restart `npm run dev` to load this build. The process on port 3000 is the previous one
-- A later MySQL outage keeps the process up. Use `/ready`, not process exit, for that case
-- See ADR-010 and `docs/learning/F08-readiness-shutdown.md`
+- Completed: F09
+- Next task: F10 (TypeScript types/interfaces/unions/intersections/narrowing lab). Do not start it here
+- Lint: `npm run lint` (ESLint 9, type-aware on `src`). Format: `npm run format:check` (Prettier, not markdown)
+- `npm run typecheck` is `tsc --noEmit` and does not write `dist`
+- `npm test` compiles, then `node --test --test-reporter=spec "tests/**/*.test.mjs"`
+- ESLint 10 was skipped: its engines reject Node 22.12.0. Jest/Vitest and CI stay later
+- Health and ready are unchanged. Redis is not dialed. Migrations do not run at startup
+- The process on port 3000 was not restarted. F09 does not change the HTTP contract
+- `npm audit` is 9 moderate. Audit fix was not applied
+- See ADR-011 and `docs/learning/F09-lint-format.md`
 - Keep the volume: `docker compose down` is safe; do not add `-v`
