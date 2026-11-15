@@ -33,7 +33,9 @@ docker compose up -d
 npm run infra:check
 ```
 
-`docker compose ps` shows MySQL and Redis. `docker compose logs` shows their output. `docker compose stop` pauses them. `docker compose down` removes the containers and keeps the named MySQL volume. Adding `-v` deletes that volume.
+`docker compose ps` shows MySQL, Redis, and Adminer. `docker compose logs` shows their output. `docker compose stop` pauses them. `docker compose down` removes the containers and keeps the named MySQL volume. Adding `-v` deletes that volume.
+
+Adminer is at [http://127.0.0.1:8080](http://127.0.0.1:8080). The server field is `mysql`. Use `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE` from `.env`. After this file changes, start the new container with `docker compose up -d` in your own terminal.
 
 The HTTP process stays on the host:
 

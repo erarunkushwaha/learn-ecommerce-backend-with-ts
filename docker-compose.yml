@@ -1,4 +1,4 @@
-# Local MySQL and Redis for this repo. Node.js stays on the host.
+# Local MySQL, Redis, and Adminer for this repo. Node.js stays on the host.
 # Homebrew MySQL on port 3306 uses /opt/homebrew/var/mysql and is not mounted here.
 # `docker compose down` keeps the named volume. Do not add `-v`.
 
@@ -51,6 +51,17 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+  adminer:
+    image: adminer:6.3.0
+    container_name: ecom-backend-adminer
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    ports:
+      - "127.0.0.1:8080:8080"
 
 volumes:
   ecom_mysql_data:
