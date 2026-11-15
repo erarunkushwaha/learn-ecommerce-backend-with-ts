@@ -24,7 +24,7 @@ labs/                      # independent TypeScript/Node/DBMS experiments
 docs/learning/             # notes if module-local learning docs are impractical
 ```
 
-As of F05, `src/` contains `index.ts`, `app.ts`, `server.ts`, `config/env.ts`, `config/logger.ts`, `config/data-stores.ts`, `common/errors/app-error.ts`, `common/middleware/request-log.ts`, and `common/middleware/error-handler.ts`. The HTTP process validates its environment, assigns a request id, writes JSON logs, and answers known and unknown routes with JSON. It does not open MySQL or Redis. The other folders above are not created yet.
+As of F06, `src/` contains `index.ts`, `app.ts`, `server.ts`, `config/env.ts`, `config/logger.ts`, `config/data-stores.ts`, `database/sequelize.ts`, `common/errors/app-error.ts`, `common/middleware/request-log.ts`, and `common/middleware/error-handler.ts`. The HTTP process validates its environment, assigns a request id, writes JSON logs, and answers known and unknown routes with JSON. The process entry builds one Sequelize pool and does not query it. `createApp()` does not open MySQL or Redis. `migrations/`, `seeders/`, and `models/` are not created yet.
 
 ## Request lifecycle
 Target path for later tasks. F02 disables `X-Powered-By` and mounts `/api/v1`. F04 adds the JSON 404 and the final error middleware. F05 adds the request id and the access log in front of the routes. Auth, validation, and the other middleware in this list are not installed yet.
@@ -41,7 +41,9 @@ Before listen, `startServer()` with no explicit port loads `src/config/env.ts`. 
 ## Local data stores (I01)
 Node.js stays on the host. `docker-compose.yml` runs MySQL `26.7.0` and Redis `8.2`. Published ports bind to `127.0.0.1` only: MySQL host port `3307` (container port `3306`) and Redis `6379`. MySQL data is the named volume `ecom_mysql_data`. A Homebrew MySQL `26.7.0` already listens on port `3306` with its own datadir; Compose does not mount that directory.
 
-`src/config/env.ts` validates `PORT`, `LOG_LEVEL`, `MYSQL_*`, and `REDIS_*` with one Zod schema. `LOG_LEVEL` is optional and defaults to `info`. `MYSQL_ROOT_PASSWORD` stays a Compose variable. `src/config/data-stores.ts` can open a one-shot MySQL `SELECT 1` plus a Redis `AUTH`/`PING` from those settings. `npm run infra:check` runs those checks. `createApp()` does not read the environment. `startServer()` with no explicit port validates the variables and does not connect, so liveness stays independent of the containers. `startServer(port)` is the in-process test seam and checks that number only. Sequelize pooling is F06. Cache and BullMQ are B01–B04. Readiness is F08. The application image is S08. Inside a future app container, the MySQL address is the Compose DNS name `mysql` on port `3306`, because `3307` is only the host mapping. The schema accepts that address.
+`src/config/env.ts` validates `PORT`, `LOG_LEVEL`, `MYSQL_*`, and `REDIS_*` with one Zod schema. `LOG_LEVEL` is optional and defaults to `info`. `MYSQL_ROOT_PASSWORD` stays a Compose variable. `src/config/data-stores.ts` can open a one-shot MySQL `SELECT 1` plus a Redis `AUTH`/`PING` from those settings. `npm run infra:check` runs those checks. That ping is not the process pool.
+
+`src/database/sequelize.ts` is the MySQL pool (F06, ADR-007). `getSequelize()` calls `loadConfig` and stores one Sequelize 6 instance in module scope. `createSequelize` is the seam for a different target. The pool uses the configured host and port, dialect `mysql`, `utf8mb4`, session time zone `+00:00`, and `max: 5` / `min: 0`. Construction does not open a socket. The first query borrows a connection. SQL logging is off unless the logger level is `debug`, and bind parameters are not written into that line. The process entry in `src/server.ts` calls `getSequelize()` before `startServer()` and does not call `authenticate`, `query`, or `sync`. `createApp()` does not read the environment and does not import the pool. `startServer(port)` is the in-process test seam: it checks that number only and does not create the pool. Liveness stays independent of MySQL. `closeSequelize()` drains the cached instance. Nothing calls it on SIGINT or SIGTERM. Cache and BullMQ are B01–B04. Readiness and pool shutdown are F08. Migrations are F07. The application image is S08. Inside a future app container, the MySQL address is the Compose DNS name `mysql` on port `3306`, because `3307` is only the host mapping. The schema accepts that address.
 
 ## Contracts
 - Version prefix `/api/v1`.
@@ -50,7 +52,7 @@ Node.js stays on the host. `docker-compose.yml` runs MySQL `26.7.0` and Redis `8
 - Use async/await. Express 5 forwards handler throws and rejections to `src/common/middleware/error-handler.ts`. Never leak stack traces to clients.
 - Domain services handle policy and transactional decisions; repositories do not invoke web/email side effects within open DB transactions.
 - Transactions are explicit for multi-row invariants. Checkout enforces inventory correctness using row locking/conditional updates; retries are bounded and idempotent.
-- Use a single configured Sequelize instance per Node process with connection pooling (module caching may already suffice); don't instantiate a DB client per request. Avoid unnecessary Singleton classes.
+- Use a single configured Sequelize instance per Node process with connection pooling. F06 does this with module scope in `src/database/sequelize.ts`, not a Singleton class, and not a new client per request.
 - Authentication: short-lived access token, server-revocable rotating refresh token (stored hashed), appropriately secure transport/cookie policies; authorization includes both RBAC and object ownership.
 
 ## Design patterns to demonstrate, not force

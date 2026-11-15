@@ -9,6 +9,7 @@ import { listeningUrl, startServer, stopServer } from "../dist/server.js";
 
 /**
  * Closed ports on purpose. Startup must accept this shape and must not connect.
+ * The process entry configures the Sequelize pool and still opens no socket.
  * @type {Record<string, string>}
  */
 const LOCAL_DATA_STORE_ENV = {

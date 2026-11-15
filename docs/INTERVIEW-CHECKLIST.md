@@ -20,7 +20,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] libuv thread pool vs worker threads vs child processes
 - [ ] EventEmitter and events
 - [ ] Streams, Buffers, pipeline and backpressure
-- [x] CommonJS vs ESM; module cache — F01, ADR-001, `docs/learning/F01-bootstrap.md`
+- [x] CommonJS vs ESM; module cache — F01, ADR-001, `docs/learning/F01-bootstrap.md`. F06 stores the Sequelize instance in that cache (`src/database/sequelize.ts`, `docs/learning/F06-sequelize-pool.md`)
 - [ ] CPU-bound vs IO-bound workloads, profiling and memory leaks
 - [ ] process signals, graceful shutdown and clustering/load balancer discussion
 
@@ -51,7 +51,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] transaction isolation levels, deadlocks and retries
 - [ ] optimistic/pessimistic locking and race conditions
 - [ ] offset vs cursor pagination
-- [ ] SQL injection and parameterization
+- [x] SQL injection and parameterization — F06 runs `SELECT $secret` with `bind` against Compose MySQL and checks the debug SQL omits that value (`tests/database.test.mjs`, `docs/learning/F06-sequelize-pool.md`). Request-body queries are later
 
 ## Sequelize
 
@@ -60,7 +60,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] eager/lazy loading, N+1 and batch reads
 - [ ] scopes, hooks, validations and lifecycle
 - [ ] migrations/seeders and schema versioning
-- [ ] transactions, locks, isolation and connection pools
+- [ ] transactions, locks, isolation and connection pools — the pool is F06 (`src/database/sequelize.ts`, ADR-007, `docs/learning/F06-sequelize-pool.md`); transactions, locks, and isolation are later
 - [ ] raw SQL and performance trade-offs
 - [ ] soft delete/paranoid and uniqueness implications
 
@@ -78,7 +78,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 ## Design patterns / architecture
 
 - [ ] SOLID / separation of concerns
-- [ ] Singleton vs Node module caching and connection pooling
+- [x] Singleton vs Node module caching and connection pooling — F06, `src/database/sequelize.ts`, ADR-007, `docs/learning/F06-sequelize-pool.md`
 - [ ] Repository Pattern and dependency injection
 - [ ] Strategy / Factory for payments
 - [ ] Observer/events, outbox vs direct events
@@ -94,7 +94,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] unit/integration/e2e/security/concurrency tests
 - [ ] Docker Compose and CI — local MySQL and Redis Compose is I01; the app image and CI remain S08 and S09
 - [ ] reverse proxy, horizontal scaling, bottlenecks
-- [ ] load test, DB pool sizing and throughput
+- [ ] load test, DB pool sizing and throughput — the pool cap is 5 (F06, `src/database/sequelize.ts`); measuring it is D12 and S12
 
 ## Interview and rebuild
 

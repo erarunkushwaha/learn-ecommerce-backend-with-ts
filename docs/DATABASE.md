@@ -13,6 +13,9 @@ No application migration has run. Two MySQL 26.7.0 servers can be running, and t
 
 Root login to the Homebrew server without a password was rejected, so those tables were not read or copied. Redis `8.2` listens on `127.0.0.1:6379` and has no cache keys yet. See `docs/learning/I01-docker-mysql-redis.md` before copying anything between the two MySQL servers.
 
+## Client
+F06 keeps one Sequelize 6 pool in `src/database/sequelize.ts`. The process entry builds it from `loadConfig` and does not run a query. The host default is `127.0.0.1:3307`. The pool cap is 5 connections and the minimum is 0, so an idle process holds no MySQL socket. Session time zone is `+00:00` and the connection charset is `utf8mb4`. `sync()` is not called. No migration has run, so the Compose `ecom` database still has no application tables. `npm run infra:check` still uses its own short-lived connection.
+
 ## Planned tables / relationships
 | Table | Primary fields (illustrative) | Relationships / notes |
 |---|---|---|

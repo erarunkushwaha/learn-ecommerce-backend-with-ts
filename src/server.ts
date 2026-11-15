@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config/env.js";
 import { createLogger, type Logger } from "./config/logger.js";
+import { getSequelize } from "./database/sequelize.js";
 
 export const LISTEN_HOST = "127.0.0.1";
 
@@ -13,7 +14,8 @@ const PORT_ERROR = "PORT must be an integer from 0 through 65535";
  * Listen on the loopback interface.
  * Pass `0` to let the operating system choose a free port.
  * An omitted port loads the Zod config and uses `config.port`.
- * An explicit port is the test seam: it checks that number only.
+ * An explicit port is the test seam: it checks that number only and does
+ * not create the Sequelize pool. The process entry does that itself.
  * `logger` is the access log and the listen line. When it is omitted, an
  * omitted port uses `config.logLevel` and an explicit port uses `info`.
  */
@@ -99,9 +101,20 @@ if (
   invokedPath !== undefined &&
   import.meta.url === pathToFileURL(invokedPath).href
 ) {
-  startServer().catch((error: unknown) => {
+  startProcess().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Server failed to start";
     console.error(message);
     process.exitCode = 1;
   });
+}
+
+/**
+ * Configure the MySQL pool, then listen.
+ * `getSequelize` parses the environment and does not connect. A refused
+ * database still leaves the process able to serve liveness. Readiness and
+ * pool shutdown are a later task.
+ */
+async function startProcess(): Promise<void> {
+  getSequelize();
+  await startServer();
 }

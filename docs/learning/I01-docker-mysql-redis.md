@@ -1,7 +1,7 @@
 # I01 — Docker Compose for MySQL and Redis
 
 ## What runs where
-`npm run dev` still compiles TypeScript and starts `dist/server.js` on the host. That process binds `127.0.0.1` and serves `GET /api/v1/health`. It does not open MySQL or Redis.
+`npm run dev` still compiles TypeScript and starts `dist/server.js` on the host. That process binds `127.0.0.1` and serves `GET /api/v1/health`. It builds the F06 Sequelize pool and does not open a MySQL connection until a query. It does not open Redis.
 
 `docker compose up -d` starts two containers:
 
@@ -43,7 +43,7 @@ Both servers are MySQL 26.7.0, so this is a same-version load. Skip it when the 
 
 The values in the example are local lab passwords. They are the Compose credentials, not production secrets, and they do not unlock the Homebrew server.
 
-F03 validates these variables with Zod in `src/config/env.ts`. The ping reads that config and still opens no pool. F06 should create one Sequelize pool from the same variables. B01 is the first task that stores Redis keys. S08 is the task that builds an app image; that container must call hostname `mysql` on port `3306`.
+F03 validates these variables with Zod in `src/config/env.ts`. The ping reads that config and still opens its own connection, then closes it. F06 creates one Sequelize pool from the same variables in `src/database/sequelize.ts`. B01 is the first task that stores Redis keys. S08 is the task that builds an app image; that container must call hostname `mysql` on port `3306`.
 
 ## Security
 The app user is `ecom`. The check connects as that user. Root is present for the image's first-time initialization and for an optional later import. Redis `requirepass` is set, and the host port is loopback-only. The password still appears in the container command because Redis receives `--requirepass` from Compose interpolation. That is acceptable for this local file and is a reason the real `.env` stays untracked.
@@ -60,7 +60,7 @@ Health checks prove the container processes answer `mysqladmin ping` and `redis-
 7. Why require a Redis password on loopback? Loopback limits who can open the port. A password still stops another local process from issuing commands if it can reach `6379`.
 8. What is the difference between `docker compose down` and `down -v`? The first removes containers and the project network. The second also removes declared volumes, which deletes the MySQL data files.
 9. Why match image `mysql:26.7.0`? That is the Homebrew server version. A dump from that server can load into this image. An older major would make a later copy a downgrade.
-10. Where should the Sequelize instance live? One module-cached pool per process, created from these settings. A new pool per request exhausts connections. That pool is the next database task, not this ping.
+10. Where should the Sequelize instance live? One module-cached pool per process, created from these settings. A new pool per request exhausts connections. F06 puts that pool in `src/database/sequelize.ts`. This ping still opens a separate connection and closes it.
 
 ## From-scratch exercise
 In an empty directory, write a Compose file that publishes MySQL on `127.0.0.1:3307` with a named volume and a health check. Start it, connect with the `mysql` client, and run `SHOW TABLES`. Then explain which directory holds those files, and why a server already listening on port `3306` is unaffected.

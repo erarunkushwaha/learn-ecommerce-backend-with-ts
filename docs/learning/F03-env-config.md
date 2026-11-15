@@ -5,7 +5,7 @@
 
 `loadConfig` checks `PORT`, `LOG_LEVEL`, the MySQL settings, and the Redis settings with one Zod object. The returned value is an `AppConfig`: a listen port, a log level, plus `mysql` and `redis` objects. Field names such as `MYSQL_PORT` stay at the boundary. Later code reads `config.mysql.port`. `LOG_LEVEL` is documented with the logger in `docs/learning/F05-logging.md`.
 
-A valid result is a shape check. The process then binds `127.0.0.1` and serves `GET /api/v1/health`. It still does not open MySQL or Redis. `npm run infra:check` is the connectivity check. It reuses `readMysqlSettings` and `readRedisSettings`, which are slices of the same field schemas, and then pings.
+A valid result is a shape check. The process then binds `127.0.0.1` and serves `GET /api/v1/health`. Config parsing still does not open MySQL or Redis. The process entry now builds the F06 pool from this object and still does not query it. `npm run infra:check` is a separate connectivity check. It reuses `readMysqlSettings` and `readRedisSettings`, which are slices of the same field schemas, and then pings.
 
 `createApp()` does not read the environment. Importing `src/config/env.ts` does not read it either. Tests pass a plain object, or they spawn the process with an explicit environment.
 
@@ -23,7 +23,7 @@ Strings are not trimmed. Trimming would change a password that intentionally con
 The listen address is still the constant `127.0.0.1` in `src/server.ts`. It is not an environment variable in this task.
 
 ## The explicit-port seam
-`startServer(0)` checks that argument and does not parse the rest of the environment. The in-process tests use it so they can bind without a `.env`. The process entry never passes a port, so `node dist/server.js` always parses the full schema. A later pool should call `loadConfig` itself rather than assume every `startServer` call already did.
+`startServer(0)` checks that argument and does not parse the rest of the environment. The in-process tests use it so they can bind without a `.env`. The process entry never passes a port, so `node dist/server.js` always parses the full schema. The F06 pool calls `loadConfig` itself from `getSequelize` rather than assuming every `startServer` call already did.
 
 ## Node, Zod, and errors
 `safeParse` collects every failing field. The thrown `Error` message is one line per rule, for example `MYSQL_PASSWORD is required`. The message names the variable and the rule. It does not include the supplied value, so a rejected password is not written to stderr.
@@ -45,7 +45,7 @@ Failing closed on a missing password is the point of the schema. A present but w
 5. Why default MySQL to `3307`? On this machine port `3306` is the Homebrew server. Compose publishes MySQL on `127.0.0.1:3307`. The schema still accepts `3306` when a container should dial the Compose DNS name `mysql`.
 6. Why leave `MYSQL_ROOT_PASSWORD` out? The app connects as `ecom`. Putting the root password in the Node config would give the process a credential it does not need.
 7. Why not parse at import time? Importing `server.ts` or `env.ts` must be side-effect free. Tests supply different objects, and an import-time singleton would freeze the first environment, including secrets.
-8. Why does `startServer(0)` skip the data-store fields? It is the test seam for "bind this port." The executable entry calls `startServer()` with no argument and parses the full contract. Pool setup should call `loadConfig` on its own.
+8. Why does `startServer(0)` skip the data-store fields? It is the test seam for "bind this port." The executable entry calls `startServer()` with no argument and parses the full contract. `getSequelize` calls `loadConfig` on its own (F06, `src/database/sequelize.ts`).
 9. What should a config error contain? The variable name and the broken rule. The raw value can be a password, and a stack trace does not help the operator fix `.env`.
 10. How is this different from request validation? Both use Zod at a boundary. This boundary is the process environment, once, before listen. Request bodies are untrusted input on every call and get HTTP status codes. The JSON error handler exists (F04, `docs/learning/F04-error-handling.md`). Request-body validation is still a later task. Startup failures stay plain `Error`s on stderr because they happen before a response exists.
 

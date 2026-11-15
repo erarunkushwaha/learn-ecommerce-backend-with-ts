@@ -6,7 +6,8 @@ import type { MysqlSettings, RedisSettings } from "./env.js";
  * One-shot pings for the Compose MySQL and Redis services.
  * Settings are parsed in `env.ts`. This file does not choose defaults.
  * The HTTP server does not import this module.
- * F06 adds the Sequelize pool. Cache and job clients stay in later tasks.
+ * The process pool lives in `database/sequelize.ts`. This check still opens
+ * one connection and closes it. Cache and job clients stay in later tasks.
  */
 
 /** Open one MySQL connection, run `SELECT 1`, and close it. */
