@@ -2,7 +2,7 @@
   "name": "ecom-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness and MySQL readiness, Zod environment config, JSON error handling, structured request logs, one Sequelize pool, a startup MySQL probe, SIGINT/SIGTERM drain, and a migration command for Compose MySQL are in place. ESLint and Prettier check the code. Local MySQL and Redis run in Docker Compose. labs/f10-types is a TypeScript narrowing exercise outside the HTTP process.",
+  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness and MySQL readiness, Zod environment config, JSON error handling, structured request logs, one Sequelize pool, a startup MySQL probe, SIGINT/SIGTERM drain, and a migration command for Compose MySQL are in place. ESLint and Prettier check the code. Local MySQL and Redis run in Docker Compose. labs/f10-types and labs/f11-types are TypeScript exercises outside the HTTP process.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lab:f10": "tsc -p labs/f10-types/tsconfig.json && node labs/f10-types/dist/run.js",
+    "lab:f11": "tsc -p labs/f11-types/tsconfig.json && node labs/f11-types/dist/run.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src\" \"tests\" \"scripts\" \"labs\" \"eslint.config.js\" \"package.json\"",

@@ -1,13 +1,13 @@
 # Project Progress
 
 ## Status
-F10 is verified. `labs/f10-types/` is a separate TypeScript program for interfaces, unions, intersections, and narrowing. `npm run lab:f10` compiles it and prints the demo. `npm run typecheck` is still `tsc --noEmit` for `src/` only. `npm run lint` is ESLint 9 with type-aware rules on `src/` and on the lab project. `npm run format:check` is Prettier on the code files, including `labs/`. `npm test` compiles `src/`, then runs Node's test runner on a quoted `tests/**/*.test.mjs` glob. The F10 tests compile the lab again. `GET /api/v1/health` is still liveness. `GET /api/v1/ready` reports MySQL. The process entry runs that probe before listen and exits when MySQL is refused or the password is rejected. SIGINT and SIGTERM drain the HTTP server and then the pool. Redis is not probed. Migrations still do not run at startup. `sync({ force: true })` is not used.
+F11 is verified. `labs/f11-types/` is a separate TypeScript program for generics, utility types, mapped and conditional types, and an optional Express `actor`. `npm run lab:f11` compiles it and prints the demo. `labs/f10-types/` is still the narrowing lab. `npm run typecheck` is still `tsc --noEmit` for `src/` only. `npm run lint` is ESLint 9 with type-aware rules on `src/` and on each lab project. `npm run format:check` is Prettier on the code files, including `labs/`. `npm test` compiles `src/`, then runs Node's test runner on a quoted `tests/**/*.test.mjs` glob. The F10 and F11 tests compile their labs again. `GET /api/v1/health` is still liveness. `GET /api/v1/ready` reports MySQL. The process entry runs that probe before listen and exits when MySQL is refused or the password is rejected. SIGINT and SIGTERM drain the HTTP server and then the pool. Redis is not probed. Migrations still do not run at startup. `sync({ force: true })` is not used. `src/` does not augment `Request`. The request id remains on the response logger.
 
 ## Current / next task
-- **Task ID:** F11
-- **Title:** TypeScript lab: generics, utility types, conditional/mapped types and safe Express Request augmentation
-- **Expected outcome:** A runnable lab for those type concepts, including a safe Express `Request` augmentation. Do not start it in the F10 session.
-- **Scope limits:** do not add user, catalog, or auth routes. Do not add Redis or BullMQ clients. Do not start F11 here.
+- **Task ID:** A01
+- **Title:** User model/migration with uniqueness and repository
+- **Expected outcome:** A user table, uniqueness, and a repository. Do not start it in the F11 session.
+- **Scope limits:** do not add registration, login, or auth middleware here. Do not add Redis or BullMQ clients. Do not start A01 here.
 
 ## Completed and verified tasks
 - **F01** — Bootstrap npm, strict TypeScript, scripts, gitignore, and README. Verified 2026-11-11 on Node v22.12.0 / npm 10.9.0.
@@ -21,18 +21,19 @@ F10 is verified. `labs/f10-types/` is a separate TypeScript program for interfac
 - **F08** — Liveness stays process-only. Readiness reports MySQL. Startup exits when that probe fails. SIGINT and SIGTERM drain HTTP and the pool. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. Compose MySQL was healthy on `127.0.0.1:3307`.
 - **F09** — ESLint 9 flat config, Prettier, and a quoted Node test glob. `typecheck` stays no-emit. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. ESLint 9.39.5, typescript-eslint 8.72.2, Prettier 3.10.1.
 - **F10** — TypeScript lab for interfaces, unions, intersections, and narrowing under `labs/f10-types/`. The HTTP app does not import it. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. TypeScript 5.9.3.
+- **F11** — TypeScript lab for generics, utility types, mapped and conditional types, and an optional Express `actor` under `labs/f11-types/`. The HTTP app does not import it. Verified 2026-11-15 on Node v22.12.0 / npm 10.9.0. TypeScript 5.9.3. Express 5.3.0. No new dependency.
 
 ## Checks performed
 - `npm run typecheck` — exit 0. `tsc -p tsconfig.json --noEmit`.
 - `npm run lint` — exit 0. `eslint .`
 - `npm run format:check` — exit 0. Prettier reported all matched files use its style.
-- `npm run lab:f10` — exit 0. Printed `Mug ₹`, `Kitchen`, `card visa 4242`, and `seller@example.com`.
-- `npm test` — exit 0. Compiled `src/`, then 63 passed, 0 failed (the previous 60 plus three tests in `tests/f10-types.test.mjs`). The spec reporter printed `ℹ pass 63` / `ℹ fail 0`. Compose MySQL on `127.0.0.1:3307` accepted the existing database tests.
+- `npm run lab:f11` — exit 0. Printed `1 Cup ₹`, `seller 7`, `anonymous`, and `data`.
+- `npm test` — exit 0. Compiled `src/`, then 66 passed, 0 failed (the previous 63 plus three tests in `tests/f11-types.test.mjs`). The spec reporter printed `ℹ pass 66` / `ℹ fail 0`. Compose MySQL on `127.0.0.1:3307` accepted the existing database tests.
 - `npm audit` was not run. No dependency was added.
-- The dev process already listening on `127.0.0.1:3000` was not restarted. `npm test` recompiled `dist`. The listening process is still the previous one. F10 does not change the HTTP contract.
+- The dev process already listening on `127.0.0.1:3000` was not restarted. `npm test` recompiled `dist`. The listening process is still the previous one. F11 does not change the HTTP contract.
 
 ## Blockers
-_None for F10._
+_None for F11._
 
 ## Decisions made in implementation
 - ADR-001 (accepted): ESM with TypeScript `NodeNext`.
@@ -47,6 +48,7 @@ _None for F10._
 - ADR-010 (accepted): health stays liveness. `GET /api/v1/ready` uses an injected probe. The process entry passes `probeMysql` (`SELECT 1+1 AS result`), exits before listen on failure, and on SIGINT/SIGTERM drains HTTP for up to 10 seconds and then closes the pool. `createApp()` does not import the pool. Redis is not probed.
 - ADR-011 (accepted): ESLint 9 flat config and Prettier. Type-aware rules apply to `src/**/*.ts`. `npm run typecheck` does not emit. `npm test` quotes `tests/**/*.test.mjs` and uses the spec reporter. ESLint 10 was not installed because it rejects Node 22.12.0. Jest and Vitest stay later. ADR-012 extends lint and Prettier to the lab project.
 - ADR-012 (accepted): `labs/f10-types/` compiles with its own tsconfig to `labs/f10-types/dist/`. `npm run typecheck` stays the `src/` check. `npm run lab:f10` runs the demo. `reject/cheque.ts` is outside the lab program and must fail `tsc`. The HTTP modules do not import the lab.
+- ADR-013 (accepted): `labs/f11-types/` is a third program on the same split. It merges optional `actor` onto `express-serve-static-core`'s `Request`. `readActor` copies `id` and `buyer` or `seller` only. `src/` does not load that module. `reject/unsafe.ts` must fail `tsc`.
 
 ## Known limitations
 - An `Error.message` or stack on stderr can contain a password. The client body does not. The migration CLI prints `error.message` only. Field redaction is B07. The readiness and startup logs copy the driver message for the same reason.
@@ -80,25 +82,34 @@ _None for F10._
 - Sequelize 6.37.8 depends on `uuid` 8.x. `npm audit` reports GHSA-w5hq-g745-h8pq (moderate) when a caller passes `buf`. This code does not call `uuid`. The forced fix would downgrade Sequelize to 3.30.0, so it was not applied.
 - `typescript-eslint` 8.72.2 depends on `minimatch` that `npm audit` reports as GHSA-g3hv-75wg-m249 (moderate). The forced fix would downgrade `typescript-eslint` to 8.36.0. It was not applied. Lint uses the installed 8.72.2.
 - npm warned that `eslint@9.39.5` is unsupported upstream, and that nested `eslint-visitor-keys@5.0.1` wants Node `^20.19.0 || ^22.13.0 || >=24`. ESLint 10 has that same engines field. `npm run lint` still exited 0 on Node 22.12.0.
-- Type-aware ESLint rules cover `src/**/*.ts` and `labs/f10-types/*.ts`. They do not cover `tests/**/*.mjs`, `scripts/**/*.mjs`, or `labs/**/reject/**`. The reject file is an ESLint ignore because it is expected to fail `tsc`.
-- Prettier formats `labs/` and does not format markdown, `docs/`, or `prompts/`. Print width is 100. The ignore pattern `dist` also skips `labs/f10-types/dist/`.
-- `npm test` writes `dist`. The F10 test also writes `labs/f10-types/dist/`. `npm run typecheck` writes neither. Two compiles writing the same `outDir` at the same time can interleave.
-- The lab's two tsconfigs (application and `labs/f10-types`) can drift. `npm run typecheck` can pass while the lab is broken. `npm test` and `npm run lab:f10` are the lab checks.
+- Type-aware ESLint rules cover `src/**/*.ts`, `labs/f10-types/*.ts`, and `labs/f11-types/*.ts`. They do not cover `tests/**/*.mjs`, `scripts/**/*.mjs`, or `labs/**/reject/**`. Those reject files are an ESLint ignore because they are expected to fail `tsc`.
+- Prettier formats `labs/` and does not format markdown, `docs/`, or `prompts/`. Print width is 100. The ignore pattern `dist` also skips `labs/f10-types/dist/` and `labs/f11-types/dist/`.
+- `npm test` writes `dist`. The F10 test also writes `labs/f10-types/dist/`, and the F11 test writes `labs/f11-types/dist/`. `npm run typecheck` writes neither. Two compiles writing the same `outDir` at the same time can interleave.
+- The application tsconfig and the two lab tsconfigs can drift. `npm run typecheck` can pass while a lab is broken. `npm test`, `npm run lab:f10`, and `npm run lab:f11` are the lab checks.
 - Annotations in the lab are erased. `describePayment` trusts a `Payment`. `readPayment` is the `unknown` boundary. A `pan` field on the input is not copied. `last4` is a four-digit shape check.
 - `"email" in identity` takes the email branch when both fields are present. `labelAccount` therefore returns the email.
 - `OpenListing & ClosedListing` is `never`. `StringId & NumericId` keeps `name: string` and makes `id` `never`. `assertNever` throws `unexpected value` plus `typeof`, and it does not print the value.
 - `isRecord` accepts plain objects and `Object.create(null)`. It rejects arrays, `null`, and class instances. `instanceof LabeledPrice` fails for a plain object and for an instance from another realm.
 - `labs/f10-types/reject/cheque.ts` fails `tsc` because `"cheque"` is not a payment method. The same payload fails `readPayment` at runtime with `payment method is not supported`.
 - `HistoryTable` is the union of the two exported history-table names. The unused runtime array was removed so lint would accept the file. The legal names are unchanged.
+- Compiler flags now live in three tsconfigs. `npm run typecheck` can pass while `labs/f11-types/` is broken. `npm test` and `npm run lab:f11` are the F11 checks. The F11 test also writes `labs/f11-types/dist/`.
+- `Partial`, `Pick`, `Omit`, `Record`, `Readonly`, mapped types, and conditional types are erased. `freezeProduct` copies and then `Object.freeze`s. The freeze is shallow. This product's fields are primitives.
+- `FieldsWithoutId<ProductDraft>` is `never`, so `insert` rejects a product payload. `[]` is still assignable to `readonly never[]`, so the empty seed is not the error.
+- The memory repository is not Sequelize. It refuses an own `id` and copies other enumerable own fields. `readNewProduct` is the allowlist. A bad seed throws from the factory. An insert failure rejects.
+- `actor` is optional and exists only in a compilation that loads `labs/f11-types/request.ts`. `src/` has no `actor` field. F05 still uses the `WeakMap` for the request id. `hasActor` fails closed when the value is not exactly `id` and `buyer` or `seller`. `readActor` throws, and the message does not include the value.
+- `labelOnRequest` listens on `127.0.0.1` port 0 and is not `src/server.ts`. An invalid actor throws before `listen`. `admin` is not a role.
+- A product name is trimmed before the control-character check. A trailing newline is removed. A newline between characters is rejected. The limit is 80 UTF-16 code units. `stringProductKeys` includes `currency` because that union extends `string`. `IdOf` distributes over a naked type-parameter union.
+- `namespace Express` was not used. `no-namespace` rejects it in a `.ts` module. The lab merges `express-serve-static-core`'s `Request` instead.
 
 ## Recent task handoff (keep <= 12 lines)
-- Completed: F10
-- Next task: F11 (generics, utility types, conditional/mapped types, Express Request augmentation). Do not start it here
-- Lab: `labs/f10-types/`. Run: `npm run lab:f10`. Notes: `docs/learning/F10-types.md`, ADR-012
+- Completed: F11
+- Next task: A01 (user model, migration, uniqueness, repository). Do not start it here
+- Lab: `labs/f11-types/`. Run: `npm run lab:f11`. Notes: `docs/learning/F11-types.md`, ADR-013
+- Demo lines: `1 Cup ₹`, `seller 7`, `anonymous`, `data`
 - `npm run typecheck` still checks `src/` only and does not emit
-- `npm test`: 63 passed, 0 failed. It also compiles the lab and expects `reject/cheque.ts` to fail `tsc`
-- Lint type-checks `src/` and `labs/f10-types/*.ts`. `labs/**/reject/**` is ignored. Prettier includes `labs/`
+- `npm test`: 66 passed, 0 failed. It also compiles the lab and expects `reject/unsafe.ts` to fail `tsc`
+- Optional `actor` stays in the lab. `src/` does not augment `Request`. The request id stays on the `WeakMap`
 - Health and ready are unchanged. Redis is not dialed. Migrations do not run at startup
-- The process on port 3000 was not restarted. F10 does not change the HTTP contract
+- The process on port 3000 was not restarted. F11 does not change the HTTP contract
 - No new dependency. `npm audit` was not run
 - Keep the volume: `docker compose down` is safe; do not add `-v`

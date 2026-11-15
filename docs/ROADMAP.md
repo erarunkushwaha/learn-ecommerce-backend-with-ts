@@ -20,7 +20,7 @@ Each unchecked entry is **planned**, not implemented. Work on only one task per 
 - [x] **F08** — Readiness/liveness checks, startup failure and graceful shutdown
 - [x] **F09** — Add ESLint/formatting and reliable typecheck/test scripts
 - [x] **F10** — TypeScript lab: types/interfaces/unions/intersections/narrowing
-- [ ] **F11** — TypeScript lab: generics, utility types, conditional/mapped types and safe Express Request augmentation
+- [x] **F11** — TypeScript lab: generics, utility types, conditional/mapped types and safe Express Request augmentation
 
 ## Development infrastructure
 

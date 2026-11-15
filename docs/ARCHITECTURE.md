@@ -28,6 +28,8 @@ As of F08, `src/` contains `index.ts`, `app.ts`, `server.ts`, `config/env.ts`, `
 
 F10 adds `labs/f10-types/`. That directory is its own TypeScript program (`labs/f10-types/tsconfig.json`, same strict flags, `NodeNext`). It emits `labs/f10-types/dist/`. The application `tsconfig.json` still includes only `src/**/*.ts` and still emits `dist/`. `src/app.ts` and `src/server.ts` do not import the lab. `npm run typecheck` checks `src/` only. `npm run lab:f10` compiles the lab and prints the demo. See ADR-012.
 
+F11 adds `labs/f11-types/` on the same split. `npm run lab:f11` compiles it and prints the generics demo. The lab merges an optional `actor` onto `express-serve-static-core`'s `Request`. That merge is not part of the application program, so `src/` still has no `actor` field. The request id remains on the response logger from F05. See ADR-013.
+
 ## Request lifecycle
 Target path for later tasks. F02 disables `X-Powered-By` and mounts `/api/v1`. F04 adds the JSON 404 and the final error middleware. F05 adds the request id and the access log in front of the routes. Auth, validation, and the other middleware in this list are not installed yet.
 

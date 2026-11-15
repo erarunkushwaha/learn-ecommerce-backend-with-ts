@@ -12,6 +12,7 @@ Interview-lab e-commerce API. The HTTP process is an Express app with a `/api/v1
 
 - `npm run typecheck` — strict TypeScript check of `src/`, no emit
 - `npm run lab:f10` — compile `labs/f10-types` and print the narrowing demo
+- `npm run lab:f11` — compile `labs/f11-types` and print the generics demo
 - `npm run lint` — ESLint, including type-aware rules for `src/` and `labs/`
 - `npm run lint:fix` — ESLint with safe automatic fixes
 - `npm run format:check` — Prettier check for the code files
@@ -70,6 +71,8 @@ The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNex
 
 `npm run lab:f10` compiles `labs/f10-types` to `labs/f10-types/dist` and prints four demo lines. That program is not imported by the HTTP app. `npm run typecheck` does not compile it. `npm test` does. See `docs/learning/F10-types.md` and ADR-012.
 
+`npm run lab:f11` does the same for `labs/f11-types`. The demo prints the repository id, a patched name, a currency symbol, two actor labels from a loopback Express request, and the success-envelope key. See `docs/learning/F11-types.md` and ADR-013.
+
 ## Layout
 
 - `src/app.ts` — Express app, `/api/v1`, health and ready routes, request id, access log, JSON 404, error middleware; does not listen or open a pool
@@ -96,6 +99,8 @@ The package is ECMAScript modules (`"type": "module"`). TypeScript uses `NodeNex
 - `tests/tooling.test.mjs` — lint, format, typecheck, and test script contract
 - `labs/f10-types/` — TypeScript lab for interfaces, unions, intersections, and narrowing
 - `tests/f10-types.test.mjs` — lab narrowing behavior and the rejected `cheque` method
+- `labs/f11-types/` — TypeScript lab for generics, utility types, mapped and conditional types, and an optional Express `actor`
+- `tests/f11-types.test.mjs` — lab behavior and the rejected unguarded `actor` use
 - `eslint.config.js` — ESLint flat config
 - `.prettierrc.json` — Prettier options
 - `.prettierignore` — generated files and markdown

@@ -3,7 +3,7 @@
 ## Request flow
 `createApp()` mounts middleware in this order: `requestContext`, `accessLog`, the `/api/v1` routes, `notFoundHandler`, `errorHandler`.
 
-`requestContext` reads `X-Request-Id`. The value is kept when it is 1–128 characters and matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. A missing value, a space, a slash, a quote, or a newline is thrown away and replaced with `crypto.randomUUID()`. The chosen id is set on the response as `X-Request-Id` and stored on a child logger in a `WeakMap` keyed by the response. `Express.Request` is not given a new field. That augmentation is a later lab.
+`requestContext` reads `X-Request-Id`. The value is kept when it is 1–128 characters and matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. A missing value, a space, a slash, a quote, or a newline is thrown away and replaced with `crypto.randomUUID()`. The chosen id is set on the response as `X-Request-Id` and stored on a child logger in a `WeakMap` keyed by the response. `Express.Request` is not given a new field. F11 shows an optional `actor` in `labs/f11-types/`. This middleware still uses the map.
 
 `accessLog` records the path from `req.originalUrl` before the router runs, and drops the query string. Inside the `/api/v1` router, `req.path` would later be `/health` for `GET /api/v1/health`. The original URL keeps the prefix. When the response finishes, one JSON line is written:
 
@@ -53,7 +53,7 @@ If the log stream throws, the writer tries stderr once. If stderr throws too, th
 5. Why log `originalUrl` instead of `req.path`? The access middleware is mounted on the app. The route then runs inside the `/api/v1` router, which strips that prefix from `req.path` before `finish`. `originalUrl` still has `/api/v1/health`. The query string is removed so a token in `?token=` is not stored.
 6. Why log a secret that the client must not see? The 500 body is for the caller. The stderr line is for the person debugging the process. Without it, a database error disappears. The trade-off is that log access is as sensitive as database access.
 7. Why skip an error line for `NotFoundError`? The message is already the client body, and the access line has status 404. An error line is reserved for the text the handler hides.
-8. Why a `WeakMap` instead of `req.requestId`? Express chooses an error middleware by `function.length`. The handler stays at four parameters and reads the logger from the response. Adding a field to `Request` is a later TypeScript lab. The map entry disappears with the response object.
+8. Why a `WeakMap` instead of `req.requestId`? Express chooses an error middleware by `function.length`. The handler stays at four parameters and reads the logger from the response. F11 shows an optional `actor` in the lab program. This middleware still uses the map, so the HTTP `Request` type stays unchanged. The map entry disappears with the response object.
 9. Why can `LOG_LEVEL=error` hide the listen line? The listen line is `info`. Error level means "failures only." The default is `info`, so a normal start still prints the URL.
 10. What does this logging not do? It does not prove MySQL is up, it does not redact passwords inside `Error.message`, and it does not ship logs off the machine. Readiness is F08. Redaction is B07.
 

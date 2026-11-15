@@ -6,10 +6,10 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 
 - [x] strictNullChecks / noImplicitAny — F01, `tsconfig.json` (`"strict": true`), `docs/learning/F01-bootstrap.md`
 - [x] interface vs type; union/intersection; discriminated union — F10, `labs/f10-types/`, `docs/learning/F10-types.md`
-- [ ] generics and reusable response/repository types
-- [ ] utility types Partial/Pick/Omit/Record/Readonly
-- [ ] mapped/conditional types and type guards — `isAppError` / `isClientAppError` are type guards (F04, `src/common/errors/app-error.ts`, `docs/learning/F04-error-handling.md`); mapped and conditional types are F11
-- [ ] Express Request extension, runtime validation vs TS types — runtime validation versus `AppConfig` is F03 (`src/config/env.ts`, `docs/learning/F03-env-config.md`); F05 stores the request id on a child logger with a `WeakMap` instead of augmenting `Request` (`docs/learning/F05-logging.md`). The augmentation lab is F11
+- [x] generics and reusable response/repository types — F11, `ApiSuccess<T>` and `Repository<TFields>` in `labs/f11-types/`, `docs/learning/F11-types.md`. The HTTP success envelope is still `SuccessBody<T>` in `src/app.ts` (F02)
+- [x] utility types Partial/Pick/Omit/Record/Readonly — F11, `labs/f11-types/product.ts`, `docs/learning/F11-types.md`
+- [x] mapped/conditional types and type guards — `isAppError` / `isClientAppError` are type guards (F04, `src/common/errors/app-error.ts`, `docs/learning/F04-error-handling.md`). Mapped and conditional types, plus `isRequestActor`, `hasActor`, and `isApiSuccess`, are F11 (`labs/f11-types/`, `docs/learning/F11-types.md`)
+- [x] Express Request extension, runtime validation vs TS types — runtime validation versus `AppConfig` is F03 (`src/config/env.ts`, `docs/learning/F03-env-config.md`). F05 stores the request id on a child logger with a `WeakMap` instead of augmenting `Request` (`docs/learning/F05-logging.md`). F11 augments `Request` with optional `actor` in the lab program only (`labs/f11-types/request.ts`, `docs/learning/F11-types.md`)
 
 ## Node.js
 

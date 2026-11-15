@@ -19,7 +19,7 @@ export default tseslint.config(
     },
   },
   {
-    // The F10 lab has its own tsconfig. projectService selects that project.
+    // Each lab directory has its own tsconfig. projectService selects that project.
     files: ["labs/**/*.ts"],
     extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
