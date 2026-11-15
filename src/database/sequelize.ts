@@ -7,7 +7,7 @@ import { createLogger, type Logger } from "../config/logger.js";
  * `getSequelize` calls `loadConfig` itself and keeps the instance in module
  * scope. Construction does not open a socket: `min` is 0, and Sequelize
  * acquires a connection on the first query. There are no models and no
- * `sync()`. Migrations and readiness stay in later tasks.
+ * `sync()`. This module does not run migrations. Readiness stays later.
  * The host and port come from config. The host default is `127.0.0.1:3307`,
  * which is Compose. Port `3306` is not selected here.
  */

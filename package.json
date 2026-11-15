@@ -2,7 +2,7 @@
   "name": "ecom-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness health, Zod environment config, JSON error handling, structured request logs, and one idle Sequelize pool for Compose MySQL are in place. Local MySQL and Redis run in Docker Compose.",
+  "description": "Interview-lab e-commerce API. HTTP app, /api/v1, liveness health, Zod environment config, JSON error handling, structured request logs, one idle Sequelize pool, and a migration command for Compose MySQL are in place. Local MySQL and Redis run in Docker Compose.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -13,7 +13,11 @@
     "dev": "tsc -p tsconfig.json && node --env-file=.env dist/server.js",
     "start": "node --env-file=.env dist/server.js",
     "test": "tsc -p tsconfig.json && node --test tests/*.test.mjs",
-    "infra:check": "tsc -p tsconfig.json && node --env-file=.env scripts/check-data-stores.mjs"
+    "infra:check": "tsc -p tsconfig.json && node --env-file=.env scripts/check-data-stores.mjs",
+    "db:migrate": "tsc -p tsconfig.json && node --env-file=.env dist/database/cli.js migrate",
+    "db:migrate:undo": "tsc -p tsconfig.json && node --env-file=.env dist/database/cli.js migrate:undo",
+    "db:seed": "tsc -p tsconfig.json && node --env-file=.env dist/database/cli.js seed",
+    "db:seed:undo": "tsc -p tsconfig.json && node --env-file=.env dist/database/cli.js seed:undo"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
@@ -24,6 +28,7 @@
     "express": "^5.3.0",
     "mysql2": "^3.24.6",
     "sequelize": "^6.37.8",
+    "umzug": "^3.8.3",
     "zod": "^4.6.7"
   }
 }

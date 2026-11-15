@@ -111,8 +111,8 @@ if (
 /**
  * Configure the MySQL pool, then listen.
  * `getSequelize` parses the environment and does not connect. A refused
- * database still leaves the process able to serve liveness. Readiness and
- * pool shutdown are a later task.
+ * database still leaves the process able to serve liveness. Migrations are
+ * a separate command. Readiness and pool shutdown are a later task.
  */
 async function startProcess(): Promise<void> {
   getSequelize();

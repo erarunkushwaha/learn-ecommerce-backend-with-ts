@@ -59,7 +59,7 @@ The checklist tracks **concept coverage**, not application tasks. Do not mark a 
 - [ ] hasOne/belongsTo/hasMany/belongsToMany
 - [ ] eager/lazy loading, N+1 and batch reads
 - [ ] scopes, hooks, validations and lifecycle
-- [ ] migrations/seeders and schema versioning
+- [x] migrations/seeders and schema versioning — F07 (`src/database/migrator.ts`, `npm run db:migrate`, `npm run db:seed`, ADR-008, ADR-009, `docs/learning/F07-migrations.md`)
 - [ ] transactions, locks, isolation and connection pools — the pool is F06 (`src/database/sequelize.ts`, ADR-007, `docs/learning/F06-sequelize-pool.md`); transactions, locks, and isolation are later
 - [ ] raw SQL and performance trade-offs
 - [ ] soft delete/paranoid and uniqueness implications

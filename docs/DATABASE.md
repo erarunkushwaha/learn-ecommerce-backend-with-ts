@@ -1,20 +1,44 @@
-# Database Design (proposal, not migrated yet)
+# Database Design
 
 ## Database
-MySQL 8+ / InnoDB / utf8mb4. Use UTC timestamps, deterministic migrations, explicit foreign keys and sensible on-delete actions. Choose ID strategy and monetary representation before first migration (recommended: BIGINT IDs and DECIMAL(12,2) with currency field). Financial totals calculated server-side; preserve price snapshots on order items.
+MySQL 8+ / InnoDB / utf8mb4. Use UTC timestamps, deterministic migrations, explicit foreign keys and sensible on-delete actions. Financial totals are calculated server-side; preserve price snapshots on order items.
+
+ADR-009 is the identifier and money choice, made before the first domain table:
+
+- Application primary keys are `BIGINT UNSIGNED` `AUTO_INCREMENT`.
+- Money is `DECIMAL(12,2)` plus a `CHAR(3)` currency code. No money column exists yet.
+- Timestamps that the application writes are `DATETIME(3)`. The pool sets the session time zone to `+00:00`.
+- Table and column names are `snake_case`.
+- Bookkeeping tables are the exception: `SequelizeMeta.name` and `SequelizeData.name` are `VARCHAR(255)` primary keys.
 
 ## Where development data lives
-No application migration has run. Two MySQL 26.7.0 servers can be running, and they do not share files.
+The baseline migration and seeder have been applied to Compose `ecom`. Two MySQL 26.7.0 servers can be running, and they do not share files.
 
 | Server | Address | Data |
 |---|---|---|
 | Homebrew `mysqld` | port `3306`, datadir `/opt/homebrew/var/mysql` | Already had user databases `ecom`, `ecommerce_db`, `joins_lab`, `rb_main`, and `rb_tenant_number_1` on 2026-11-11. This repo does not connect to them. |
-| Compose service `mysql` | `127.0.0.1:3307`, volume `ecom-backend_ecom_mysql_data` | Empty database `ecom`, charset `utf8mb4`, collation `utf8mb4_0900_ai_ci`. Future migrations go here. |
+| Compose service `mysql` | `127.0.0.1:3307`, volume `ecom-backend_ecom_mysql_data` | Database `ecom`, charset `utf8mb4`, collation `utf8mb4_0900_ai_ci`. F07 applied `schema_baseline`, `SequelizeMeta`, and `SequelizeData` here. |
 
 Root login to the Homebrew server without a password was rejected, so those tables were not read or copied. Redis `8.2` listens on `127.0.0.1:6379` and has no cache keys yet. See `docs/learning/I01-docker-mysql-redis.md` before copying anything between the two MySQL servers.
 
 ## Client
-F06 keeps one Sequelize 6 pool in `src/database/sequelize.ts`. The process entry builds it from `loadConfig` and does not run a query. The host default is `127.0.0.1:3307`. The pool cap is 5 connections and the minimum is 0, so an idle process holds no MySQL socket. Session time zone is `+00:00` and the connection charset is `utf8mb4`. `sync()` is not called. No migration has run, so the Compose `ecom` database still has no application tables. `npm run infra:check` still uses its own short-lived connection.
+F06 keeps one Sequelize 6 pool in `src/database/sequelize.ts`. The process entry builds it from `loadConfig` and does not run a query or a migration. The host default is `127.0.0.1:3307`. The pool cap is 5 connections and the minimum is 0, so an idle process holds no MySQL socket. Session time zone is `+00:00` and the connection charset is `utf8mb4`. `sync()` is not called. `npm run infra:check` still uses its own short-lived connection.
+
+`npm run db:migrate` and `npm run db:seed` open a second, short-lived pool from `readMysqlSettings`. They load compiled files with Umzug. `npm run db:migrate:undo` and `npm run db:seed:undo` revert the latest applied file of that kind. Undo the seeder before undoing the migration that drops its table.
+
+## Disposable test database
+`tests/migrations.test.mjs` connects as Compose `root`, drops and creates `ecom_test` with `utf8mb4` / `utf8mb4_0900_ai_ci`, grants `MYSQL_USER`@`%` all privileges on that database, runs the migration and seeder as that user, revokes the grant, and drops `ecom_test`. The name is fixed. The test refuses any other name. It records the table list of `ecom` and requires that list to be unchanged. `MYSQL_ROOT_PASSWORD` stays out of the application schema. After the suite on 2026-11-15, `SHOW DATABASES LIKE 'ecom_test'` returned no row.
+
+## Implemented tables
+Observed on Compose `ecom` after `npm run db:migrate` and `npm run db:seed` on 2026-11-15. A second run of each command applied nothing.
+
+| Table | Columns | Notes |
+|---|---|---|
+| `schema_baseline` | `id` `bigint unsigned` NOT NULL AUTO_INCREMENT PRIMARY KEY; `label` `varchar(32)` NOT NULL UNIQUE; `created_at` `datetime(3)` NOT NULL | InnoDB, `utf8mb4_0900_ai_ci`. Migration `20261115140000-baseline.js`. Not a user, catalog, or auth table. `down` drops it. |
+| `SequelizeMeta` | `name` `varchar(255)` NOT NULL PRIMARY KEY | InnoDB, `utf8mb4_0900_ai_ci`. One row: `20261115140000-baseline.js`. Created by the runner, not by a migration file. Undo deletes the row and leaves the table. |
+| `SequelizeData` | `name` `varchar(255)` NOT NULL PRIMARY KEY | InnoDB, `utf8mb4_0900_ai_ci`. One row: `20261115140000-baseline-seed.js`. Same lifecycle as `SequelizeMeta`. |
+
+`schema_baseline` has one seeded row: `id` 1, `label` `baseline`, `created_at` `2026-11-15 00:00:00.000`. The seeder deletes only that label. The HTTP process does not read the row.
 
 ## Planned tables / relationships
 | Table | Primary fields (illustrative) | Relationships / notes |
